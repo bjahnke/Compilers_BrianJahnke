@@ -4,11 +4,23 @@ import java.util.InputMismatchException;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Scanner;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 public class Lexer {
+	public static String[] keywords = {"if", "while", "print"};
+	public static String[] types = {"int", "string", "boolean"};
+	public static String[] boolval = {"true", "false"};
+	public static String[] boolop = {"==", "!="};
+	public static Pattern charP = Pattern.compile("[a-z]");
+	public static Pattern digitP = Pattern.compile("[0-9]");
+	//Pattern keyWordP = Pattern.compile("[a-z][a-z]+");
+	//Pattern 
+	
 	
 	public static enum tokenType {
 		EOP,
+		DIGIT,
 		CHAR,
 		ID,
 		SPACE,
@@ -16,25 +28,98 @@ public class Lexer {
 		RCBRACE,
 		LPAREN,
 		RPAREN,
-		EQUALS,
+		ASSIGN,
 		DQUOTE,
 		PLUS,
-		TRUE,
-		FALSE,
-		PRINT,
-		WHILE,
-		IF;	
+		BOOLVAL,
+		BOOLOP,
+		TYPE,	
+	    KEYWORD;
 	}
 	
-	
-	
-	public static List<tokenType> lex(String input) {
-		List<tokenType> result = new ArrayList<tokenType>();
-		for(int i = 0; i < input.length(); ) {
-			switch(input.charAt(i)) {
-	//		case "$"
+	public static class Token {
+		public final tokenType t;
+		public final String c;
+		public final int lineNum;
+		
+		public Token(tokenType t, String c, int lineNum) {
+			this.t = t;
+			this.c = c;
+			this.lineNum = lineNum;
+		}
+	}
+	//check reserved words as substring in charstring, returns the index of wordlist where the element matches the at
+	//index, "index", of the input String
+	private static int matchWordList(String input, String[] wordList, int index) {
+		for(int x = 0; x < wordList.length; x++){
+			if(input.indexOf(wordList[x]) == index) {
+				return x;
 			}
 		}
+		return -1;
+	}
+	
+	public static List<tokenType> lex(String input) {
+		List<Token> result = new ArrayList<Token>();
+		int quoteCounter = 0;
+		for(int i = 0; i < input.length(); i++) {
+			char cChar = input.charAt(i);
+			int resultIndex = matchWordList(input, keywords, i);
+			if(resultIndex > -1) {   
+				result.add(new Token(tokenType.KEYWORD, keywords[resultIndex], 0)); //need to figure out line num
+			}
+			else {
+				resultIndex = matchWordList(input, types, i);
+				if(resultIndex > -1){
+					result.add(new Token(tokenType.TYPE, types[resultIndex], 0));  //need to figure out line num
+				}
+				else {
+					resultIndex = matchWordList(input, boolval, i);
+					if(resultIndex > -1) {
+						result.add(new Token(tokenType.BOOLVAL, boolval[resultIndex], 0)); //need to figure out line num
+					}
+					else {
+						resultIndex = matchWordList(input, boolop, i);
+						if(resultIndex > -1) {
+							result.add(new Token(tokenType.BOOLOP, boolop[resultIndex], 0));
+						}
+					}
+				}
+			}
+			if(cChar == '(') {
+				result.add(new Token(tokenType.LPAREN, "(", 0));
+			}
+			if(cChar == ')') {
+				result.add(new Token(tokenType.RPAREN, ")", 0));
+			}
+			if(cChar == '{') {
+				result.add(new Token(tokenType.LCBRACE, "{", 0));
+			}
+			if(cChar == '}') {
+				result.add(new Token(tokenType.RCBRACE, "}", 0));
+			}
+			if(cChar == ' ') {
+				result.add(new Token(tokenType.SPACE, " ", 0));
+			}
+			if(cChar == '=') {
+				result.add(new Token(tokenType.ASSIGN, "=", 0));
+			}
+			if(cChar == '\"') {
+				result.add(new Token(tokenType.DQUOTE, "\"", 0));
+			}
+			else {
+				Matcher digitM = digitP.matcher(String.valueOf(cChar));
+				if(digitM.matches()) {
+					result.add(new Token(tokenType.DIGIT, String.valueOf(cChar), 0));
+				}
+				else {
+					Matcher charM = charP.matcher(String.valueOf(cChar));
+					if(charM.matches()) {
+						result.add(new Token(tokenType.CHAR, String.valueOf(cChar), 0));
+					}
+				}
+			}
+		}		
 		return null;
 	}
 	
