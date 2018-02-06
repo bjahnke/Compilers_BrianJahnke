@@ -12,6 +12,7 @@ public class Lexer {
 	public static String[] types = {"int", "string", "boolean"};
 	public static String[] boolval = {"true", "false"};
 	public static String[] boolop = {"==", "!="};
+	public static String[] comment = {"/*", "*/"};
 	public static Pattern charP = Pattern.compile("[a-z]");
 	public static Pattern digitP = Pattern.compile("[0-9]");
 	//Pattern keyWordP = Pattern.compile("[a-z][a-z]+");
@@ -30,7 +31,7 @@ public class Lexer {
 		RPAREN,
 		ASSIGN,
 		DQUOTE,
-		PLUS,
+		INTOP,
 		BOOLVAL,
 		BOOLOP,
 		TYPE,	
@@ -57,6 +58,18 @@ public class Lexer {
 			}
 		}
 		return -1;
+	}
+	
+	private static void removeComments(String input){
+		int i = 0;
+		int start = -1;
+		int end = -1;
+		//boolean  = true;
+		while(input.indexOf(comment[0]) != -1 && input.indexOf(comment[1]) != -1) {
+			start = input.indexOf(comment[0]);
+			end = input.indexOf(comment[1]);
+			input.repla
+		}
 	}
 	
 	public static List<tokenType> lex(String input) {
@@ -99,13 +112,19 @@ public class Lexer {
 				result.add(new Token(tokenType.RCBRACE, "}", 0));
 			}
 			if(cChar == ' ') {
-				result.add(new Token(tokenType.SPACE, " ", 0));
+				result.add(new Token(tokenType.SPACE, "\\s", 0));
 			}
 			if(cChar == '=') {
 				result.add(new Token(tokenType.ASSIGN, "=", 0));
 			}
+			if(cChar == '+') {
+				result.add(new Token(tokenType.INTOP, "+", 0));
+			}
 			if(cChar == '\"') {
 				result.add(new Token(tokenType.DQUOTE, "\"", 0));
+			}
+			if(cChar == '$') {
+				result.add(new Token(tokenType.EOP, "$", 0));
 			}
 			else {
 				Matcher digitM = digitP.matcher(String.valueOf(cChar));
@@ -121,10 +140,6 @@ public class Lexer {
 			}
 		}		
 		return null;
-	}
-	
-	public static String trimWhiteSpace(String str) {
-		return str.replace("/^\\s+ | \\s+$/g", "");
 	}
 	
 	//Scans file specified in folder test, returns a charstring of entire file
