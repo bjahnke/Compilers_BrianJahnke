@@ -51,7 +51,7 @@ public class Lexer {
 			this.lineNum = lineNum;
 		}
 		@Override public String toString() {
-			return this.t + ", " + this.c + ", " + this.lineNum + "||";
+			return this.t + ", " + this.c + ", " + this.lineNum + "\n";
 		}
 	}
 	//check reserved words as substring in charstring, returns the index of wordlist where the element matches the at
@@ -109,7 +109,7 @@ public class Lexer {
 				result.add(new Token(tokenType.BOOLOP, boolop[ind], 0));
 				i += boolop[ind].length()-1;
 			}
-			if(cChar == '(') {
+			else if(cChar == '(') {
 				result.add(new Token(tokenType.LPAREN, "(", 0));
 			}
 			else if(cChar == ')') {
@@ -121,7 +121,7 @@ public class Lexer {
 			else if(cChar == '}') {
 				result.add(new Token(tokenType.RCBRACE, "}", 0));
 			}
-			else if(cChar == ' ') {
+			else if(String.valueOf(cChar) == " ") {
 				result.add(new Token(tokenType.SPACE, "\\s", 0));
 			}
 			else if(cChar == '=') {
@@ -144,6 +144,7 @@ public class Lexer {
 			}
 			else {
 				String error = "Error: illegal Token" + cChar + "on line: " + 0; // not a real line
+				errorList.add(error);
 			}
 		}		
 		return result;
@@ -163,7 +164,7 @@ public class Lexer {
 	            line = sc.nextLine();
 	            line = line.trim();
 	            for(int i = 0; i < line.length(); i++) {
-	            	charString += line;
+	            	charString += line.charAt(i);
 	            }
 	            //System.out.println(line);	            
 			}
@@ -177,7 +178,9 @@ public class Lexer {
 	public static void main(String[] args) {
 		String cString = ScanFileReturnCharString("test_file1.txt");
 		List<Token> tList = lex(cString);
+		System.out.println(" " == " ");
 		System.out.println(Arrays.toString(tList.toArray()));
+		System.out.println(Arrays.toString(errorList.toArray()));
 		
 		
 	}
