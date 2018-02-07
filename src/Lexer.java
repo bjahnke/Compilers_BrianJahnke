@@ -18,6 +18,7 @@ public class Lexer {
 	public static Pattern digitP = Pattern.compile("[0-9]");
 	public static List<String> errorList = new ArrayList<String>();
 	public static List<String> warningList = new ArrayList<String>();
+	public static List<String> progList = new ArrayList<String>();
 	public static int progNum = 0;   //compare with eop symbol number to see if there is a missing symbol.
 	public static int eopNum = 0;
 	//Pattern keyWordP = Pattern.compile("[a-z][a-z]+");
@@ -149,7 +150,7 @@ public class Lexer {
 			else if(cChar == '}') {
 				result.add(new Token(tokenType.RCBRACE, "}", 0));
 			}
-			else if(String.valueOf(cChar) == " ") {
+			else if(cChar == ' ') {
 				result.add(new Token(tokenType.SPACE, "\\s", 0));
 			}
 			else if(cChar == '=') {
@@ -174,6 +175,7 @@ public class Lexer {
 			}
 			else if(cChar == '$') {
 				result.add(new Token(tokenType.EOP, "$", 0));
+				progList.add((String)input.subSequence(0, i));
 				eopNum++;
 				if(i < input.length()-1) {
 					progNum++;
@@ -185,10 +187,12 @@ public class Lexer {
 			else if(charM.matches()) {
 				result.add(new Token(tokenType.CHAR, String.valueOf(cChar), 0));
 			}
-			else if(String.valueOf(cChar) != "\t" || String.valueOf(cChar) != "\n"){
-				String error = "Error: illegal Token \' " + cChar + " \'on line: " + 0 + 
-						        "\nSolution: Remove Token.\n"; // not a real line
-				errorList.add(error);
+			else if(String.valueOf(cChar) != "\t") {
+				if(String.valueOf(cChar) != "\n") {
+					String error = "Error: illegal Token \'" + cChar + "\'on line: " + 0 + 
+						        	"\nSolution: Remove Token.\n"; // not a real line
+					errorList.add(error);
+				}
 			}
 		}	
 		if(input.charAt(input.length()-1) != '$') {
@@ -226,7 +230,9 @@ public class Lexer {
 	public static void main(String[] args) {
 		String cString = ScanFileReturnCharString("test_file1.txt");
 		List<Token> tList = lex(cString);
+		String space = " ";
 		System.out.println(Arrays.toString(tList.toArray()));
+		//System.out.println(Arrays.toString(progList.toArray()));
 		System.out.println(Arrays.toString(errorList.toArray()));
 		
 		
