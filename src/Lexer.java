@@ -50,6 +50,9 @@ public class Lexer {
 			this.c = c;
 			this.lineNum = lineNum;
 		}
+		@Override public String toString() {
+			return this.t + ", " + this.c + ", " + this.lineNum + "||";
+		}
 	}
 	//check reserved words as substring in charstring, returns the index of wordlist where the element matches the at
 	//index, "index", of the input String
@@ -65,15 +68,14 @@ public class Lexer {
 	private static String removeComments(String input){
 		int start = -1; 
 		int end = -1;   
-		String inputCommentRemoved = "";
-		//boolean  = true;
-		while(input.indexOf(comment[0]) != -1 && input.indexOf(comment[1]) != -1) {
-			start = input.indexOf(comment[0]);
-				end = input.indexOf(comment[1])+2;
-			String commentStr = (String)input.subSequence(start, end);
-			inputCommentRemoved = input.replace(commentStr, "");
+		String newInput = input;
+		while(newInput.indexOf(comment[0]) != -1 && newInput.indexOf(comment[1]) != -1) {
+			start = newInput.indexOf(comment[0]);
+				end = newInput.indexOf(comment[1])+2;
+			String commentStr = (String)newInput.subSequence(start, end);
+			newInput = newInput.replace(commentStr, "");
 		}
-		return inputCommentRemoved;
+		return newInput;
 	}
 	
 	public static List<Token> lex(String input) {
@@ -93,8 +95,8 @@ public class Lexer {
 				i += keywords[ind].length()-1;
 			}
 			else if(matchWordList(input, types, i) > -1) {
-				int ind = matchWordList(input, boolval, i);
-				result.add(new Token(tokenType.TYPE, types[ind], 0));  //need to figure out line num
+				int ind = matchWordList(input, types, i);
+				result.add(new Token(tokenType.TYPE, types[ind], 0));  //need to figure out line num				
 				i += types[ind].length()-1;
 			}
 			else if(matchWordList(input, boolval, i) > -1) {
