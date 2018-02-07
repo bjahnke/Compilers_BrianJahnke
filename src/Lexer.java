@@ -17,6 +17,9 @@ public class Lexer {
 	public static Pattern charP = Pattern.compile("[a-z]");
 	public static Pattern digitP = Pattern.compile("[0-9]");
 	public static List<String> errorList = new ArrayList<String>();
+	public static List<String> warningList = new ArrayList<String>();
+	public static int progNum = 0;   //compare with eop symbol number to see if there is a missing symbol.
+	public static int eopNum = 0;
 	//Pattern keyWordP = Pattern.compile("[a-z][a-z]+");
 	//Pattern 
 	
@@ -36,7 +39,8 @@ public class Lexer {
 		INTOP,
 		BOOLVAL,
 		BOOLOP,
-		TYPE,	
+		TYPE,
+		STRINGLITERAL,
 	    KEYWORD;
 	}
 	
@@ -65,6 +69,28 @@ public class Lexer {
 		return -1;
 	}
 	
+	//Verifying strings seperate from the lex method because its annoying and messy to 
+	//keep tabs on whether or not a quote is closed throughout the method.
+	//Hopefully compartmentalizing this makes it more readable despite the reuse of code.
+	private static int verrifyString(String input, int cIndex) {
+		
+		while(cIndex < input.length()) {
+			char cChar = input.charAt(cIndex);
+			Matcher charM = charP.matcher(String.valueOf(cChar));
+			if(cChar == '\"') {
+				return cIndex;
+			}
+			else if(!charM.matches()) {
+				String error = "Syntax Error: Token \' " +cChar+ " \' is illegal or may not be present within a String type." 
+								+ "\nSolution: Remove the Token.";
+				errorList.add(error);
+				return -1;
+			}
+			cIndex++;
+		}
+		return cIndex;
+	}
+	
 	private static String removeComments(String input){
 		int start = -1; 
 		int end = -1;   
@@ -81,10 +107,12 @@ public class Lexer {
 	public static List<Token> lex(String input) {
 		List<Token> result = new ArrayList<Token>();
 		int quoteCounter = 0;
-		
 		input = removeComments(input);
 		for(int i = 0; i < input.length(); i++) {
-			
+			if(i == 0){
+				progNum++;
+				//System.out.println("Program #"+progNum);
+			}
 			char cChar = input.charAt(i);
 			Matcher digitM = digitP.matcher(String.valueOf(cChar));
 			Matcher charM = charP.matcher(String.valueOf(cChar));
@@ -131,10 +159,25 @@ public class Lexer {
 				result.add(new Token(tokenType.INTOP, "+", 0));
 			}
 			else if(cChar == '\"') {
-				result.add(new Token(tokenType.DQUOTE, "\"", 0));
+				int iOfEndQuote = verrifyString(input, i);
+				if(iOfEndQuote != -1) {
+					if(iOfEndQuote == input.length() && input.charAt(iOfEndQuote) == '$') {
+						String error = "Syntax Error: String is initiated at character num " + i + "but does not close" + 
+										"\nSolution: Add a quote to close the String or remove the existing quote";
+						errorList.add(error);
+					}
+					else {
+						String validString = (String)input.subSequence(i, iOfEndQuote);
+						result.add(new Token(tokenType.STRINGLITERAL, validString, 0));
+					}
+				}
 			}
 			else if(cChar == '$') {
 				result.add(new Token(tokenType.EOP, "$", 0));
+				eopNum++;
+				if(i < input.length()-1) {
+					progNum++;
+				}
 			}
 			else if(digitM.matches()) {
 				result.add(new Token(tokenType.DIGIT, String.valueOf(cChar), 0));
@@ -142,11 +185,16 @@ public class Lexer {
 			else if(charM.matches()) {
 				result.add(new Token(tokenType.CHAR, String.valueOf(cChar), 0));
 			}
-			else {
-				String error = "Error: illegal Token" + cChar + "on line: " + 0; // not a real line
+			else if(String.valueOf(cChar) != "\t" || String.valueOf(cChar) != "\n"){
+				String error = "Error: illegal Token \' " + cChar + " \'on line: " + 0 + 
+						        "\nSolution: Remove Token.\n"; // not a real line
 				errorList.add(error);
 			}
-		}		
+		}	
+		if(input.charAt(input.length()-1) != '$') {
+			String warning = "Warning: Program does not end with a $.";
+			warningList.add(warning);
+		}
 		return result;
 	}
 	
@@ -178,7 +226,6 @@ public class Lexer {
 	public static void main(String[] args) {
 		String cString = ScanFileReturnCharString("test_file1.txt");
 		List<Token> tList = lex(cString);
-		System.out.println(" " == " ");
 		System.out.println(Arrays.toString(tList.toArray()));
 		System.out.println(Arrays.toString(errorList.toArray()));
 		
