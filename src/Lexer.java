@@ -205,9 +205,7 @@ public class Lexer {
 	//Scans file specified in folder test, returns a charstring of entire file
 	public static String ScanFileReturnCharString(String fileName) {
 		String charString = "";
-		String workingDir = System.getProperty("user.dir") + "\\test";  //finds the test folder within the working directory
-		File codeFile = new File(workingDir + "\\" + fileName); //scans the specified file at the given directory
-	    System.out.print(workingDir + "\\" + "test_file1.txt\n");
+		File codeFile = new File(fileName); //scans the specified file at the given directory
 		try {
 			Scanner sc = new Scanner(codeFile);
 			
