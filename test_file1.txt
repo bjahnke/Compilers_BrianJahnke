@@ -78,4 +78,4 @@ lines"}$
 
 {thisisnotalexeme}$
 
-{thisisnotalexeme = 1}$
+{thisisnotalexeme = 1}

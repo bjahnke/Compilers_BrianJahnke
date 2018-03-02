@@ -7,6 +7,7 @@ import java.io.FileNotFoundException;
 import java.util.Scanner;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
+import java.lang.StringBuilder;
 
 public class Lexer {
 	public static String[] keywords = {"if", "while", "print"};
@@ -18,14 +19,14 @@ public class Lexer {
 	public static Pattern digitP = Pattern.compile("[0-9]");
 	public static List<String> errorList = new ArrayList<String>();
 	public static List<String> warningList = new ArrayList<String>();
-	public static List<String> progList = new ArrayList<String>();
+	public static List<Token> progList = new ArrayList<Token>();
 	public static int progNum = 1;   //compare with eop symbol number to see if there is a missing symbol.
 	public static int eopNum = 0;
 	public static int progErrorCount = 0;
 	public static boolean errorInProg = false;
+	public static int lineNum = 1;
 	//Pattern keyWordP = Pattern.compile("[a-z][a-z]+");
 	//Pattern 
-	
 	
 	public static enum tokenType {
 		EOP,
@@ -87,28 +88,45 @@ public class Lexer {
 		}
 		return (String)input.subSequence(cIndex, index);
 	}
-	private static boolean verifyStringLit(String strLit){
+	private static List<Token> verifyStringLit(String strLit){
+		List<Token> strTokens = new ArrayList<Token>();
+		Token newTok;
 		int i = 1;
 		boolean hasNoError = true;
 		while(i < strLit.length()-1){
 			char cChar = strLit.charAt(i);
 			Matcher charM = charP.matcher(String.valueOf(cChar));
-			if(!charM.matches() && cChar != ' ') {
-				String badToken = Character.toString(cChar);
-				if(cChar == '\n'){
-					badToken = "\\n";
+			if(charM.matches()){
+				newTok = new Token(tokenType.CHAR, ""+cChar, lineNum);
+				strTokens.add(newTok);
+			}
+			else if(cChar == ' '){
+				newTok = new Token(tokenType.SPACE, "\\s", lineNum);
+				strTokens.add(newTok);
+			}
+			else{
+				if(!charM.matches() && cChar != ' ') {
+					String badToken = Character.toString(cChar);
+					if(cChar == '\n'){
+						badToken = "\\n";
+					}
+					else if(cChar == '\t'){
+						badToken = "\\t";
+					}
+					System.out.println("Error: Token \'" + badToken + "\' is illegal or not allowed in string");
+					progErrorCount++;
+					errorInProg = true;
+					hasNoError = false;
 				}
-				else if(cChar == '\t'){
-					badToken = "\\t";
-				}
-				System.out.println("Error: Token \'" + badToken + "\' is illegal or not allowed in string");
-				progErrorCount++;
-				errorInProg = true;
-				hasNoError = false;
 			}
 			i++;
 		}
-		return hasNoError;
+		if(hasNoError){
+			return strTokens;
+		}
+		else {
+			return null;
+		}
 	}
 	
 	private static String removeComments(String input){
@@ -126,12 +144,18 @@ public class Lexer {
 		return newInput;
 	}
 	
+	/*-----------------|
+	 *                 |
+	 * Lexer           |
+	 *                 |
+	 -----------------*/
 	public static List<Token> lex(String input) {
 		List<Token> result = new ArrayList<Token>();
 		
 		boolean eop = false;
 		String errorMsg = "";
-		int lineNum = 1;
+		String warningMsg = "";
+		lineNum = 1;
 		input = removeComments(input);
 		Token newTok;
 
@@ -144,6 +168,7 @@ public class Lexer {
 				if(i != input.length()-1)
 				{
 					System.out.println("Lexing Program " + progNum);
+					progList.clear();
 					eop = false;
 				}
 			}
@@ -179,9 +204,9 @@ public class Lexer {
 			else if(cChar == '}') {
 				newTok = new Token(tokenType.RCBRACE, "}", lineNum);
 			}
-			else if(cChar == ' ') {
-				newTok = new Token(tokenType.SPACE, "\\s", lineNum);
-			}
+			//else if(cChar == ' ') {
+				//newTok = new Token(tokenType.SPACE, "\\s", lineNum);
+			//}
 			else if(cChar == '=') {
 				newTok = new Token(tokenType.ASSIGN, "=", lineNum);
 			}
@@ -192,10 +217,22 @@ public class Lexer {
 				String strLit = getStringLit(input, i);
 				//System.out.println(strLit);
 				if(strLit.charAt(strLit.length()-1) == '\"'){
-					i = i + strLit.length();
-					if(verifyStringLit(strLit)){
-						newTok = new Token(tokenType.STRINGLITERAL, strLit, lineNum);
+					List<Token> strToks = verifyStringLit(strLit);
+					if(strToks != null){
+						Token startQuote = new Token(tokenType.DQUOTE, ""+input.charAt(i), lineNum);
+						progList.add(startQuote);
+						System.out.println(startQuote.toString());
+						for(int ind = 0; ind < strToks.size(); ind++){
+							progList.add(strToks.get(ind));
+							System.out.println(strToks.get(ind).toString());
+						}
+						i += strLit.length()-1;
+						newTok = new Token(tokenType.DQUOTE, ""+input.charAt(i), lineNum);
 					}
+					else{
+						i += strLit.length()-1;
+					}
+					//System.out.println(input.charAt(i-1));
 				}
 				else{
 					errorMsg = "Error: Unterminated string";
@@ -223,15 +260,21 @@ public class Lexer {
 			else if(cChar == '\n') {
 				lineNum++;
 			}
-			else if(cChar != '\t') {
+			else if(cChar != '\t' && cChar != ' ') {
 					errorMsg = "Error: Illegal Token \'" + cChar + "\', ln: " + lineNum;
 					errorInProg = true;
 					progErrorCount++;
 					errorList.add(errorMsg);
 			}
+			if(input.charAt(input.length()-1) != '$') {
+				warningMsg = "Warning: $ at file end not present. Added Automatically to prevent failure.";
+				input = input + '$';
+				//warningList.add(warning);
+			}
 			
 			if(newTok != null){
 				result.add(newTok);
+				progList.add(newTok);
 				System.out.println(newTok.toString());
 				if(eop){
 					if(errorInProg){
@@ -241,6 +284,7 @@ public class Lexer {
 					}
 					else{
 						System.out.println("Lex completed successfully\n");
+						//parse(progList);
 					}
 				}
 			}
@@ -248,13 +292,14 @@ public class Lexer {
 				System.out.println(errorMsg);
 				errorMsg = "";
 			}
-		}	
-		if(input.charAt(input.length()-1) != '$') {
-			String warning = "Warning: Program does not end with a $.";
-			warningList.add(warning);
+		}
+		if(warningMsg != ""){
+			System.out.println(warningMsg);
+			warningMsg = "";
 		}
 		return result;
 	}
+	
 /*-----------------|
  *                 |
  * Lex Report      |
@@ -352,18 +397,8 @@ public class Lexer {
 		
 		File testFile = getTestFile();
 		String cString = ScanFileReturnCharString(testFile);
-		//System.out.println(cString);
 		List<Token> tList = lex(cString);
 		System.out.println("\nHave nice day.");
-		//printLexReport(tList);
-		//System.out.println(tList.get(0));
-		//System.out.println(tList.get(1));
-		//System.out.println(tList.get(2));
-		//System.out.println(tList.get(3));
-		//String space = " ";
-		//System.out.println(Arrays.toString(tList.toArray()));
-		////System.out.println(Arrays.toString(progList.toArray()));
-		//System.out.println(Arrays.toString(errorList.toArray()));
 		
 		
 	}
