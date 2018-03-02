@@ -313,7 +313,7 @@ public class Lexer {
 		Scanner reader = new Scanner(System.in);
 		System.out.println("Options:\n"
 				+ "(1) Test file with custom path.\n"
-				+ "(2) Default test file.");
+				+ "(2) Default test file. (Only For Brian)");
 		while(true){
 			System.out.println("Chose 1 or 2: ");
 			int option = reader.nextInt();
@@ -328,9 +328,15 @@ public class Lexer {
 				}
 			}
 			else if(option == 2){
-				reader.close();
-				File codeFile = new File("test_file1.txt");
-				return codeFile;
+				try{
+					File codeFile = new File("test_file1.txt");
+					Scanner test = new Scanner(codeFile);
+					test.close();
+					return codeFile;
+				}
+				catch(FileNotFoundException e){
+					System.out.println("FileNotFoundException: told ya so.");
+				}
 			}
 			else {
 				System.out.println("Not a valid option");
@@ -348,6 +354,7 @@ public class Lexer {
 		String cString = ScanFileReturnCharString(testFile);
 		//System.out.println(cString);
 		List<Token> tList = lex(cString);
+		System.out.println("\nHave nice day.");
 		//printLexReport(tList);
 		//System.out.println(tList.get(0));
 		//System.out.println(tList.get(1));
