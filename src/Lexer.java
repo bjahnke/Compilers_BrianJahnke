@@ -64,7 +64,7 @@ public class Lexer {
 	}
 	//check reserved words as substring in charstring, returns the index of wordlist where the element matches the at
 	//index, "index", of the input String
-	private static int matchWordList(String input, String[] wordList, int index) {
+	public static int matchWordList(String input, String[] wordList, int index) {
 		for(int x = 0; x < wordList.length; x++){
 			if(input.indexOf(wordList[x], index) == index) {
 				//System.out.println(wordList[x]);
@@ -232,7 +232,6 @@ public class Lexer {
 					else{
 						i += strLit.length()-1;
 					}
-					//System.out.println(input.charAt(i-1));
 				}
 				else{
 					errorMsg = "Error: Unterminated string";
@@ -278,13 +277,15 @@ public class Lexer {
 				System.out.println(newTok.toString());
 				if(eop){
 					if(errorInProg){
-						System.out.println("Lex completed with " + progErrorCount + " error(s)\n");
+						System.out.println("Lex completed with " + progErrorCount + " error(s)\n"
+								+ "Parse not ran on program.");
 						errorInProg = false;
 						progErrorCount = 0;
 					}
 					else{
 						System.out.println("Lex completed successfully\n");
-						//parse(progList);
+						Parser.parse(progList);
+						progList.clear();
 					}
 				}
 			}
