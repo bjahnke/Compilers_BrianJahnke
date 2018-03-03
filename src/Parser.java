@@ -6,6 +6,7 @@ import java.util.List;
 public class Parser {
 	private Tree pTree;
 	private List<Lexer.Token> tokList;
+	private List<Lexer.tokenType> matchList = new ArrayList<Lexer.tokenType>();
 	private Lexer.Token currentToken;
 	private int cTokInd;
 	
@@ -98,7 +99,10 @@ public class Parser {
 		this.cTokInd++;
 		this.currentToken = this.tokList.get(cTokInd);
 	}
-	
+	public void addLeafNextTok(String term){
+		this.pTree.addLeafNode(term);
+		nextToken();
+	}
 	public static void parse(List<Lexer.Token> tList){
 		System.out.println("parse()");
 		Parser p = new Parser(tList);
@@ -106,18 +110,18 @@ public class Parser {
 	}
 	
 	public boolean parseProg(){
+		this.pTree.addBranchNode(prodType.BLOCK);
 		if(parseBlock() && match(Lexer.tokenType.EOP)){
 			System.out.println("parseProg()");
-			this.pTree.addBranchNode(prodType.BLOCK);
 			this.pTree.endChildren();
 			return true;
 		}
 		return false;
 	}
 	public boolean parseBlock(){
+		this.pTree.addBranchNode(prodType.STATEMENT_LIST);
 		if(match(Lexer.tokenType.LCBRACE) && parseStmtList() && match(Lexer.tokenType.RCBRACE)){
 			System.out.println("parseBlock()");
-			this.pTree.addBranchNode(prodType.STATEMENT_LIST);
 			this.pTree.endChildren();
 			return true;
 		}
@@ -127,7 +131,7 @@ public class Parser {
 		System.out.println("parseStatementList()");
 		if(parseStmt()){  //parseStmtList() would always be true cause of E
 			this.pTree.addBranchNode(prodType.STATEMENT);
-			//addBranchNode(prodType.STATEMENT_LIST)???
+			this.pTree.addBranchNode(prodType.STATEMENT_LIST);
 			parseStmtList();
 			this.pTree.endChildren();
 		}
@@ -241,6 +245,18 @@ public class Parser {
 		return false;
 	}
 	public boolean parseCharList(){
+		if(match(cLList()) != null){
+			if(match(cLList()) == Lexer.tokenType.CHAR){
+				parseChar();
+				this.pTree.addBranchNode(prodType.CHAR_LIST);
+			}
+			else if(match(cLList()) == Lexer.tokenType.SPACE){
+				parseSpace();
+				
+			}
+			this.pTree.addBranchNode(prodType.CHAR_LIST);
+			this.pTree.endChildren();
+		}
 		if((parseChar() && parseCharList()) 
 		|| (parseSpace() && parseCharList()) ){
 			System.out.println("parseCharList()");
@@ -253,118 +269,226 @@ public class Parser {
 	}
 
 	public boolean parseType(){
-		if(match(Lexer.tokenType.TYPE)){
+		if(match(typeList()) != null){
 			System.out.println("parseType()");
-			this.pTree.addBranchNode(prodType.TYPE);
-			this.pTree.endChildren();
+			this.addLeafNextTok(this.currentToken.getLiteralT());
 			return true;
 		}
 		return false;
 	}
 	public boolean parseChar(){
-		if(match(Lexer.tokenType.CHAR)){
+		if(match(charList()) != null){
 			System.out.println("parseChar()");
-			this.pTree.addBranchNode(prodType.CHAR);
-			this.pTree.endChildren();
+			this.addLeafNextTok(this.currentToken.getLiteralT());
 			return true;
 		}
 		return false;
 		
 	}
 	public boolean parseSpace(){
-		if(match(Lexer.tokenType.SPACE)){
+		if(match(spaceList()) != null){
 			System.out.println("parseSpace()");
-			this.pTree.addBranchNode(prodType.SPACE);
-			this.pTree.endChildren();
+			this.addLeafNextTok(this.currentToken.getLiteralT());
 			return true;
 		}
 		return false;
 	}
 	public boolean parseDigit(){
-		if(match(Lexer.tokenType.DIGIT)){
+		if(match(digitList()) != null){
 			System.out.println("parseDigit()");
-			this.pTree.addBranchNode(prodType.DIGIT);
-			this.pTree.endChildren();
+			this.addLeafNextTok(this.currentToken.getLiteralT());
 			return true;
 		}
 		return false;
 	}
 	public boolean parseBoolop(){
-		if(match(Lexer.tokenType.BOOLOP)){
+		if(match(bOpList()) != null){
 			System.out.println("parseBoolop()");
-			this.pTree.addBranchNode(prodType.BOOLOP);
-			this.pTree.endChildren();
+			this.addLeafNextTok(this.currentToken.getLiteralT());
 			return true;
 		}
 		return false;
 	}
 	public boolean parseBoolval(){
-		if(match(Lexer.tokenType.BOOLVAL)){
+		if(match(bValList()) != null){
 			System.out.println("parseBoolval()");
-			this.pTree.addBranchNode(prodType.BOOLVAL);
-			this.pTree.endChildren();
+			this.addLeafNextTok(this.currentToken.getLiteralT());
 			return true;
 		}
 		return false;
 	}
 	public boolean parseIntop(){
-		if(match(Lexer.tokenType.INTOP)){
+		if(match(intopList()) != null){
 			System.out.println("parseIntop()");
-			this.pTree.addBranchNode(prodType.INTOP);
-			this.pTree.endChildren();
+			this.addLeafNextTok(this.currentToken.getLiteralT());
 			return true;
 		}
 		return false;
 	}
-	public void match(List<Lexer.tokenType> tokens){
-	}
-	public boolean match(Lexer.tokenType tEnum){
+	public Lexer.tokenType match(List<Lexer.tokenType> tokenTypesL){
 		Lexer.Token cT = this.currentToken;
-		boolean termVerified = false;
-		
-		if(this.currentToken.getType() == tEnum){	
-			switch(this.currentToken.getType()){
-				case KEYWORD:      
-					if(this.pTree.currentNode.data == prodType.PRINT_STATEMENT){
-						if(cT.getLiteralT().equals("print")){
-							termVerified = true;
+		Lexer.tokenType returnType = null;
+		boolean termMatched = false;
+		int i = 0;
+		while(!termMatched || i < tokenTypesL.size()){
+			if(this.currentToken.getType() == tokenTypesL.get(i)){	
+				switch(this.currentToken.getType()){
+					case KEYWORD:      
+						if(this.pTree.currentNode.data == prodType.PRINT_STATEMENT){
+							if(cT.getLiteralT().equals("print")){
+								termMatched = true;
+							}
+							else{
+								//Production error-- we expect print because the current node is parsingPrint but is not present
+							}
+						}
+						else if(this.pTree.currentNode.data == prodType.WHILE_STATEMENT){
+							if(cT.getLiteralT().equals("while")){
+								termMatched = true;
+							}
+							else{
+								//Production error
+							}
+						}
+						else if(this.pTree.currentNode.data == prodType.IF_STATEMENT){
+							if(cT.getLiteralT().equals("if")){
+								termMatched = true;
+							}
+							else{
+								//Production error
+							}
 						}
 						else{
-							//Production error-- we expect print because the current node is parsingPrint but is not present
+							//error?
 						}
-					}
-					else if(this.pTree.currentNode.data == prodType.WHILE_STATEMENT){
-						if(cT.getLiteralT().equals("while")){
-							termVerified = true;
-						}
-						else{
-							//Production error
-						}
-					}
-					else if(this.pTree.currentNode.data == prodType.IF_STATEMENT){
-						if(cT.getLiteralT().equals("if")){
-							termVerified = true;
-						}
-						else{
-							//Production error
-						}
-					}
-					else{
-						//error?
-					}
-					break;
-				default:
-					termVerified = true;                         //since we already know that the current token equals the one requested,
-					break;                                       //if not a keyword, then we just send the literal token of the requested tokentype
+						break;
+					default:
+						termMatched = true;                         //since we already know that the current token equals the one requested,
+						break;                                       //if not a keyword, then we just send the literal token of the requested tokentype
+				}
 			}
 		}
-		else{
+		//else{
 			//prod error, type requested is not the type of the current token.
+		//}
+		if(termMatched){
+			returnType = this.currentToken.getType();
 		}
-		if(termVerified){
-			this.pTree.addLeafNode(cT.getLiteralT());
-			this.nextToken();
-		}
-		return termVerified;
+		return returnType;
 	}
+	
+	/*------------------------|
+	 *                        |
+	 * First Sets             |
+	 *                        |
+	 ------------------------*/
+	public static List<Lexer.tokenType> intopList(){
+		List<Lexer.tokenType> enumL = new ArrayList<Lexer.tokenType>();
+		enumL.add(Lexer.tokenType.INTOP);
+		return enumL;
+	}
+	public static List<Lexer.tokenType> bValList(){
+		List<Lexer.tokenType> enumL = new ArrayList<Lexer.tokenType>();
+		enumL.add(Lexer.tokenType.BOOLVAL);
+		return enumL;
+	}
+	public static List<Lexer.tokenType> bOpList(){
+		List<Lexer.tokenType> enumL = new ArrayList<Lexer.tokenType>();
+		enumL.add(Lexer.tokenType.BOOLOP);
+		return enumL;
+	}
+	public static List<Lexer.tokenType> digitList(){
+		List<Lexer.tokenType> enumL = new ArrayList<Lexer.tokenType>();
+		enumL.add(Lexer.tokenType.DIGIT);
+		return enumL;
+	}
+	public static List<Lexer.tokenType> spaceList(){
+		List<Lexer.tokenType> enumL = new ArrayList<Lexer.tokenType>();
+		enumL.add(Lexer.tokenType.SPACE);
+		return enumL;
+	}
+	public static List<Lexer.tokenType> charList(){
+		List<Lexer.tokenType> enumL = new ArrayList<Lexer.tokenType>();
+		enumL.add(Lexer.tokenType.CHAR);
+		return enumL;
+	}
+	public static List<Lexer.tokenType> typeList(){
+		List<Lexer.tokenType> enumL = new ArrayList<Lexer.tokenType>();
+		enumL.add(Lexer.tokenType.TYPE);
+		return enumL;
+	}
+	public static List<Lexer.tokenType> cLList(){
+		List<Lexer.tokenType> enumL = new ArrayList<Lexer.tokenType>();
+		enumL.add(Lexer.tokenType.CHAR);
+		enumL.add(Lexer.tokenType.SPACE);
+		return enumL;
+	}
+	public static List<Lexer.tokenType> idList(){
+		List<Lexer.tokenType> enumL = new ArrayList<Lexer.tokenType>();
+		enumL.add(Lexer.tokenType.ID);
+		return enumL;
+	}
+	public static List<Lexer.tokenType> booEList(){
+		List<Lexer.tokenType> enumL = new ArrayList<Lexer.tokenType>();
+		enumL.add(Lexer.tokenType.LPAREN);
+		return enumL;
+	}
+	public static List<Lexer.tokenType> strEList(){
+		List<Lexer.tokenType> enumL = new ArrayList<Lexer.tokenType>();
+		enumL.add(Lexer.tokenType.DQUOTE);
+		return enumL;
+	}
+	public static List<Lexer.tokenType> intEList(){
+		List<Lexer.tokenType> enumL = new ArrayList<Lexer.tokenType>();
+		enumL.add(Lexer.tokenType.DIGIT);
+		return enumL;
+	}
+	public static List<Lexer.tokenType> eList(){
+		List<Lexer.tokenType> enumL = new ArrayList<Lexer.tokenType>();
+		enumL.add(Lexer.tokenType.DIGIT);
+		enumL.add(Lexer.tokenType.DQUOTE);
+		enumL.add(Lexer.tokenType.LPAREN);
+		enumL.add(Lexer.tokenType.ID);
+		return enumL;
+	}
+	public static List<Lexer.tokenType> keywordList(){
+		List<Lexer.tokenType> enumL = new ArrayList<Lexer.tokenType>();
+		enumL.add(Lexer.tokenType.KEYWORD);
+		return enumL;
+	}
+	public static List<Lexer.tokenType> varDList(){
+		List<Lexer.tokenType> enumL = new ArrayList<Lexer.tokenType>();
+		enumL.addAll(typeList());
+		return enumL;
+	}
+	public static List<Lexer.tokenType> assignList(){
+		List<Lexer.tokenType> enumL = new ArrayList<Lexer.tokenType>();
+		enumL.add(Lexer.tokenType.ID);
+		return enumL;
+	}
+	public static List<Lexer.tokenType> stmtList(){
+		List<Lexer.tokenType> enumL = new ArrayList<Lexer.tokenType>();
+		enumL.addAll(varDList());
+		enumL.addAll(keywordList()); //if while print
+		enumL.addAll(typeList());
+		enumL.addAll(assignList());
+		enumL.addAll(blockList());
+		return enumL;
+	}
+	public static List<Lexer.tokenType> stmtLList(){
+		List<Lexer.tokenType> enumL = new ArrayList<Lexer.tokenType>();
+		enumL.addAll(stmtList());
+		return enumL;
+	}
+	public static List<Lexer.tokenType> blockList(){
+		List<Lexer.tokenType> enumL = new ArrayList<Lexer.tokenType>();
+		enumL.add(Lexer.tokenType.LCBRACE);
+		return enumL;
+	}
+	public static List<Lexer.tokenType> progList(){
+		List<Lexer.tokenType> enumL = new ArrayList<Lexer.tokenType>();
+		enumL.addAll(blockList());
+		return enumL;
+	}
+	
 }
