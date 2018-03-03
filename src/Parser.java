@@ -44,9 +44,6 @@ public class Parser {
 			root.children = new ArrayList<Node<N>>();
 			currentNode = root;
 		}
-		public Tree(N rootData, int current){
-			
-		}
 		
 		public static class Node<N>{
 			private N data;
@@ -76,22 +73,24 @@ public class Parser {
 			this.currentNode = node;
 		}
 		public void addBranchNode(prodType pEnum){
-			Node n = new Node<N>((N)pEnum); 
-		}
-		public void addBranchNode(Lexer.Token token){
-			Node n = new Node<N>((N)token);
+			Node n = new Node<N>((N)pEnum);
+			n.parent = this.currentNode;
+			this.currentNode.children.add(n);
+			this.currentNode = n;
 		}
 		public void addLeafNode(String term){
-			
+			Node n = new Node<N>((N)term);
+			n.parent = this.currentNode;
+			this.currentNode.children.add(n);
 		}
 		public void endChildren(){
-			
+			this.currentNode = this.currentNode.parent;
 		}
 	}
 	
 	public Parser(List<Lexer.Token> tList){
 		this.cTokInd = 0;
-		this.pTree = new Tree(null);
+		this.pTree = new Tree(prodType.PROGRAM);
 		this.tokList = tList;
 		this.currentToken = tokList.get(0);
 	}
@@ -106,150 +105,216 @@ public class Parser {
 		p.parseProg();
 	}
 	
-	public void parseProg(){
-		System.out.println("parseProg()");
-		this.pTree.addBranchNode(prodType.PROGRAM); //this right?
-		parseBlock();
-		match(Lexer.tokenType.EOP);
+	public boolean parseProg(){
+		if(parseBlock() && match(Lexer.tokenType.EOP)){
+			System.out.println("parseProg()");
+			this.pTree.addBranchNode(prodType.BLOCK);
+			this.pTree.endChildren();
+			return true;
+		}
+		return false;
 	}
-	public void parseBlock(){
-		System.out.println("parseBlock()");
-		this.pTree.addBranchNode(prodType.BLOCK);
-		match(Lexer.tokenType.LCBRACE); //first token
-		parseStmtList();
-		match(Lexer.tokenType.RCBRACE);
+	public boolean parseBlock(){
+		if(match(Lexer.tokenType.LCBRACE) && parseStmtList() && match(Lexer.tokenType.RCBRACE)){
+			System.out.println("parseBlock()");
+			this.pTree.addBranchNode(prodType.STATEMENT_LIST);
+			this.pTree.endChildren();
+			return true;
+		}
+		return false;
 	}
-	public void parseStmtList(){
+	public boolean parseStmtList(){
 		System.out.println("parseStatementList()");
-		this.pTree.addBranchNode(prodType.STATEMENT_LIST);
-		parseStmt();
-		parseStmtList();
-		//or empty
+		if(parseStmt()){  //parseStmtList() would always be true cause of E
+			this.pTree.addBranchNode(prodType.STATEMENT);
+			//addBranchNode(prodType.STATEMENT_LIST)???
+			parseStmtList();
+			this.pTree.endChildren();
+		}
+		return true;
 	}
-	public void parseStmt(){
-		System.out.println("parseStatement()");
-		this.pTree.addBranchNode(prodType.STATEMENT);
-		parsePrint();
-		//OR, assign
-		//vardecl
-		//while
-		//if
-		//block
+	public boolean parseStmt(){
+		if(parsePrint() || parseAssign() || parseVarDecl() || parseWhile() 
+		|| parseIf() || parseBlock()){
+			System.out.println("parseStatement()");
+			this.pTree.addBranchNode(prodType.STATEMENT);
+			this.pTree.endChildren();
+			return true;
+		}
+		return false;
 	}
-	public void parsePrint(){
-		System.out.println("parsePrint()");
-		this.pTree.addBranchNode(prodType.PRINT_STATEMENT);
-		match(Lexer.tokenType.KEYWORD);
-		match(Lexer.tokenType.LPAREN);
-		parseExpr();
-		match(Lexer.tokenType.RPAREN);
+	public boolean parsePrint(){
+		if(match(Lexer.tokenType.KEYWORD) && match(Lexer.tokenType.LPAREN)
+		&& parseExpr() && match(Lexer.tokenType.RPAREN)){
+			System.out.println("parsePrint()");
+			this.pTree.addBranchNode(prodType.EXPR);
+			this.pTree.endChildren();
+			return true;
+		}
+		return false;
 	}
-	public void parseAssign(){
-		System.out.println("parseAssign()");
-		this.pTree.addBranchNode(prodType.ASSIGNMENT_STATEMENT);
-		match(Lexer.tokenType.ID);
-		match(Lexer.tokenType.ASSIGN);
-		parseExpr();
+	public boolean parseAssign(){
+		if(parseId() && match(Lexer.tokenType.ASSIGN) && parseExpr()){
+			System.out.println("parseAssign()");
+			this.pTree.addBranchNode(prodType.EXPR);
+			this.pTree.endChildren();
+			return true;
+		}
+		return false;
 	}
-	public void parseVarDecl(){
-		System.out.println("parseVarDecl()");
-		this.pTree.addBranchNode(prodType.VAR_DECL);
-		parseType();
-		parseId();
+	public boolean parseVarDecl(){
+		if(parseType() && parseId()){
+			System.out.println("parseVarDecl()");
+			this.pTree.addBranchNode(prodType.VAR_DECL);
+			this.pTree.endChildren();
+			return true;
+		}
+		return false;
 	}
-	public void parseWhile(){
-		System.out.println("parseWhile()");
-		this.pTree.addBranchNode(prodType.WHILE_STATEMENT);
-		match(Lexer.tokenType.KEYWORD);
-		parseBoolExpr();
-		parseBlock();
+	public boolean parseWhile(){
+		if(match(Lexer.tokenType.KEYWORD) && parseBoolExpr() && parseBlock()){
+			System.out.println("parseWhile()");
+			this.pTree.addBranchNode(prodType.WHILE_STATEMENT);
+			this.pTree.endChildren();
+			return true;
+		}
+		return false;	
 	}
-	public void parseIf(){
-		System.out.println("parseIf()");
-		this.pTree.addBranchNode(prodType.IF_STATEMENT);
-		match(Lexer.tokenType.KEYWORD);
-		parseBoolExpr();
-		parseBlock();
+	public boolean parseIf(){
+		if(match(Lexer.tokenType.KEYWORD) && parseBoolExpr() && parseBlock()){
+			System.out.println("parseIf()");
+			this.pTree.addBranchNode(prodType.IF_STATEMENT);
+			this.pTree.endChildren();
+			return true;
+		}
+		return false;	
 	}
-	public void parseExpr(){
-		System.out.println("parseExpr()");
-		this.pTree.addBranchNode(prodType.EXPR);
-		parseIntExpr();
-		//OR, string
-		//boolean
-		//Id
+	public boolean parseExpr(){
+		if(parseIntExpr() || parseStrExpr() || parseBoolExpr() || parseId()){
+			System.out.println("parseExpr()");
+			this.pTree.addBranchNode(prodType.EXPR);
+			this.pTree.endChildren();
+			return true;
+		}
+		return false;
 	}
-	public void parseIntExpr(){
-		System.out.println("parseIntExpr()");
-		this.pTree.addBranchNode(prodType.INT_EXPR);
-		match(Lexer.tokenType.DIGIT);
-		parseIntop();
-		parseExpr();
-		//OR, digit
+	public boolean parseIntExpr(){
+		if((parseDigit() && parseIntop() && parseExpr()) 
+		|| parseDigit()){
+			System.out.println("parseIntExpr()");
+			this.pTree.addBranchNode(prodType.INT_EXPR);
+			this.pTree.endChildren();
+			return true;
+		}
+		return false;
 	}
-	public void parseStrExpr(){
-		System.out.println("parse()");
-		this.pTree.addBranchNode(prodType.STRING_EXPR);
-		match(Lexer.tokenType.DQUOTE);
-		parseCharList();
-		match(Lexer.tokenType.DQUOTE);
+	public boolean parseStrExpr(){
+		if(match(Lexer.tokenType.DQUOTE) && parseCharList() 
+		&& match(Lexer.tokenType.DQUOTE)){
+			System.out.println("parse()");
+			this.pTree.addBranchNode(prodType.STRING_EXPR);
+			this.pTree.endChildren();
+			return true;
+		}
+		return false;
+		
+		
 	}
-	public void parseBoolExpr(){
-		System.out.println("parseBoolExpr()");
-		this.pTree.addBranchNode(prodType.BOOLEAN_EXPR);
-		match(Lexer.tokenType.LPAREN);
-		parseExpr();
-		parseBoolop();
-		parseExpr();
-		match(Lexer.tokenType.LPAREN);
+	public boolean parseBoolExpr(){
+		if((match(Lexer.tokenType.LPAREN) && parseExpr() 
+		&& parseBoolop() && parseExpr() && match(Lexer.tokenType.LPAREN))
+		|| parseBoolval()){
+			System.out.println("parseBoolExpr()");
+			this.pTree.addBranchNode(prodType.BOOLEAN_EXPR);
+			this.pTree.endChildren();
+			return true;		
+		}
+		return false;
 	}
-	public void parseId(){
-		System.out.println("parseId()");
-		this.pTree.addBranchNode(prodType.ID);
-		parseChar();
+	public boolean parseId(){
+		if(match(Lexer.tokenType.ID)){   //distinction between char and id is made in lexer
+			System.out.println("parseId()");
+			this.pTree.addBranchNode(prodType.ID);
+			this.pTree.endChildren();
+			return true;
+		}
+		return false;
 	}
-	public void parseCharList(){
-		System.out.println("parseCharList()");
-		this.pTree.addBranchNode(prodType.CHAR_LIST);
-		parseChar();
-		parseCharList();
-		//or parse space charlist, or empty
+	public boolean parseCharList(){
+		if((parseChar() && parseCharList()) 
+		|| (parseSpace() && parseCharList()) ){
+			System.out.println("parseCharList()");
+			this.pTree.addBranchNode(prodType.CHAR_LIST);
+			this.pTree.endChildren();
+			return true;
+		}
+		return true; //because empty is valid?
+		//or empty?
 	}
 
-	public void parseType(){
-		System.out.println("parseType()");
-		this.pTree.addBranchNode(prodType.TYPE);
-		match(Lexer.tokenType.TYPE);
+	public boolean parseType(){
+		if(match(Lexer.tokenType.TYPE)){
+			System.out.println("parseType()");
+			this.pTree.addBranchNode(prodType.TYPE);
+			this.pTree.endChildren();
+			return true;
+		}
+		return false;
 	}
-	public void parseChar(){
-		System.out.println("parseChar()");
-		this.pTree.addBranchNode(prodType.CHAR);
-		match(Lexer.tokenType.CHAR);
+	public boolean parseChar(){
+		if(match(Lexer.tokenType.CHAR)){
+			System.out.println("parseChar()");
+			this.pTree.addBranchNode(prodType.CHAR);
+			this.pTree.endChildren();
+			return true;
+		}
+		return false;
+		
 	}
-	public void parseSpace(){
-		System.out.println("parseSpace()");
-		this.pTree.addBranchNode(prodType.SPACE);
-		match(Lexer.tokenType.SPACE);
+	public boolean parseSpace(){
+		if(match(Lexer.tokenType.SPACE)){
+			System.out.println("parseSpace()");
+			this.pTree.addBranchNode(prodType.SPACE);
+			this.pTree.endChildren();
+			return true;
+		}
+		return false;
 	}
-	public void parseDigit(){
-		System.out.println("parseDigit()");
-		this.pTree.addBranchNode(prodType.DIGIT);
-		match(Lexer.tokenType.DIGIT);
+	public boolean parseDigit(){
+		if(match(Lexer.tokenType.DIGIT)){
+			System.out.println("parseDigit()");
+			this.pTree.addBranchNode(prodType.DIGIT);
+			this.pTree.endChildren();
+			return true;
+		}
+		return false;
 	}
-	public void parseBoolop(){
-		System.out.println("parseBoolop()");
-		this.pTree.addBranchNode(prodType.BOOLOP);
-		match(Lexer.tokenType.BOOLOP);
+	public boolean parseBoolop(){
+		if(match(Lexer.tokenType.BOOLOP)){
+			System.out.println("parseBoolop()");
+			this.pTree.addBranchNode(prodType.BOOLOP);
+			this.pTree.endChildren();
+			return true;
+		}
+		return false;
 	}
-	public void parseBoolval(){
-		System.out.println("parseBoolval()");
-		this.pTree.addBranchNode(prodType.BOOLVAL);
-		match(Lexer.tokenType.BOOLVAL);
+	public boolean parseBoolval(){
+		if(match(Lexer.tokenType.BOOLVAL)){
+			System.out.println("parseBoolval()");
+			this.pTree.addBranchNode(prodType.BOOLVAL);
+			this.pTree.endChildren();
+			return true;
+		}
+		return false;
 	}
-	public void parseIntop(){
-		System.out.println("parseIntop()");
-		this.pTree.addBranchNode(prodType.INTOP);
-		match(Lexer.tokenType.INTOP);
+	public boolean parseIntop(){
+		if(match(Lexer.tokenType.INTOP)){
+			System.out.println("parseIntop()");
+			this.pTree.addBranchNode(prodType.INTOP);
+			this.pTree.endChildren();
+			return true;
+		}
+		return false;
 	}
 	public void match(List<Lexer.tokenType> tokens){
 	}
@@ -298,6 +363,7 @@ public class Parser {
 		}
 		if(termVerified){
 			this.pTree.addLeafNode(cT.getLiteralT());
+			this.nextToken();
 		}
 		return termVerified;
 	}
