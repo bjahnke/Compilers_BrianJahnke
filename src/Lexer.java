@@ -61,6 +61,12 @@ public class Lexer {
 		@Override public String toString() {
 			return this.c + " --> " + this.t + "\tln: " + this.lineNum;
 		}
+		public tokenType getType(){
+			return this.t;
+		}
+		public String getLiteralT(){
+			return this.c;
+		}
 	}
 	//check reserved words as substring in charstring, returns the index of wordlist where the element matches the at
 	//index, "index", of the input String
