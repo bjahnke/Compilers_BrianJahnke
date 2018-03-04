@@ -96,22 +96,24 @@ public class Parser {
 		this.currentToken = tokList.get(0);
 	}
 	public void nextToken(){
-		this.cTokInd++;
-		this.currentToken = this.tokList.get(cTokInd);
+			this.cTokInd++;
+			this.currentToken = this.tokList.get(cTokInd);
 	}
 	public void addLeafNextTok(String term){
 		this.pTree.addLeafNode(term);
-		nextToken();
+		if(this.cTokInd < this.tokList.size()-1){
+			nextToken();
+		}
 	}
 	public static void parse(List<Lexer.Token> tList){
-		System.out.println("parse()");
+		System.out.println("\nparse()");
 		Parser p = new Parser(tList);
 		
 		if(p.parseProg()){
-			System.out.println("Parse completed successfully");
+			System.out.println("Parse completed successfully\n");
 		}
 		else{
-			System.out.println("Parse failed");
+			System.out.println("Parse failed\n");
 		}
 	}
 	
@@ -142,17 +144,24 @@ public class Parser {
 		if(match(blockList()) != null){                                //prod 2
 			this.addLeafNextTok(this.currentToken.getLiteralT());
 			this.pTree.addBranchNode(prodType.STATEMENT_LIST);
-			if(!parseStmtList()){                                     //prod 2
-				return false;
-			}
-			if(match(termList(Lexer.tokenType.RCBRACE)) != null){      //prod 2
-				this.addLeafNextTok(this.currentToken.getLiteralT());
-				this.pTree.endChildren();
-				return true;
+			if(match(stmtLList()) != null){
+				if(!parseStmtList()){                                     //prod 2
+					this.pTree.endChildren();
+					return false;
+				}
+				if(match(termList(Lexer.tokenType.RCBRACE)) != null){      //prod 2
+					this.addLeafNextTok(this.currentToken.getLiteralT());
+					this.pTree.endChildren();
+					return true;
+				}
+				else{
+					printError(Lexer.tokenType.RCBRACE);
+					return false;
+				}
 			}
 			else{
-				printError(Lexer.tokenType.RCBRACE);
-				return false;
+				this.pTree.endChildren();
+				return true;     //because nullable              prod 4 
 			}
 		}
 		else{
@@ -164,16 +173,28 @@ public class Parser {
 		System.out.println("parseStatementList()");
 		if(match(stmtList()) != null){                    //prod 3
 			this.pTree.addBranchNode(prodType.STATEMENT);
-			if(!parseStmt()){					//first of stmt is first of stmtList without null so we need match before parsing
+			if(!parseStmt()){			
+				this.pTree.endChildren();
 				return false;
 			}
 			this.pTree.addBranchNode(prodType.STATEMENT_LIST);
-			if(!parseStmtList()){                         //prod 3
-				return false;
+			if(match(stmtLList()) != null){
+				if(!parseStmtList()){                         //prod 3
+					this.pTree.endChildren();
+					return false;
+				}
+				this.pTree.endChildren();
+				return true;
 			}
-			this.pTree.endChildren();
+			else{
+				this.pTree.endChildren();                   //prod 4 
+				return true; //because nullable;
+			}
 		}
-		return true;                           //prod 4
+		else{
+			printError(stmtList());
+			return false;             //not sure if this is reachable
+		}
 	}
 	public boolean parseStmt(){
 		if(match(keywordList()) != null){      //print, if, or, while
@@ -230,211 +251,468 @@ public class Parser {
 			this.pTree.endChildren();
 			return true;
 		}
-		return false;
+		return false; //not sure if this is right or what error it produces
 	}
-	public boolean parsePrint(){
-		if(match(Lexer.tokenType.KEYWORD) && match(Lexer.tokenType.LPAREN)
-		&& parseExpr() && match(Lexer.tokenType.RPAREN)){
-			System.out.println("parsePrint()");
-			this.pTree.addBranchNode(prodType.EXPR);
-			this.pTree.endChildren();
-			return true;
-		}
-		return false;
-	}
-	public boolean parseAssign(){
-		if(parseId() && match(Lexer.tokenType.ASSIGN) && parseExpr()){
-			System.out.println("parseAssign()");
-			this.pTree.addBranchNode(prodType.EXPR);
-			this.pTree.endChildren();
-			return true;
-		}
-		return false;
-	}
-	public boolean parseVarDecl(){
-		if(parseType() && parseId()){
-			System.out.println("parseVarDecl()");
-			this.pTree.addBranchNode(prodType.VAR_DECL);
-			this.pTree.endChildren();
-			return true;
-		}
-		return false;
-	}
-	public boolean parseWhile(){
-		if(match(Lexer.tokenType.KEYWORD) && parseBoolExpr() && parseBlock()){
-			System.out.println("parseWhile()");
-			this.pTree.addBranchNode(prodType.WHILE_STATEMENT);
-			this.pTree.endChildren();
-			return true;
-		}
-		return false;	
-	}
-	public boolean parseIf(){
-		if(match(Lexer.tokenType.KEYWORD) && parseBoolExpr() && parseBlock()){
-			System.out.println("parseIf()");
-			this.pTree.addBranchNode(prodType.IF_STATEMENT);
-			this.pTree.endChildren();
-			return true;
-		}
-		return false;	
-	}
-	public boolean parseExpr(){
-		if(parseIntExpr() || parseStrExpr() || parseBoolExpr() || parseId()){
-			System.out.println("parseExpr()");
-			this.pTree.addBranchNode(prodType.EXPR);
-			this.pTree.endChildren();
-			return true;
-		}
-		return false;
-	}
-	public boolean parseIntExpr(){
-		if((parseDigit() && parseIntop() && parseExpr()) 
-		|| parseDigit()){
-			System.out.println("parseIntExpr()");
-			this.pTree.addBranchNode(prodType.INT_EXPR);
-			this.pTree.endChildren();
-			return true;
-		}
-		return false;
-	}
-	public boolean parseStrExpr(){
-		if(match(termList(Lexer.tokenType.DQUOTE)) != null){
-			this.addLeafNextTok(this.currentToken.getLiteralT());
-			parseCharList();
-		}
-		
-		if(match(Lexer.tokenType.DQUOTE) && parseCharList() 
-		&& match(Lexer.tokenType.DQUOTE)){
-			System.out.println("parse()");
-			this.pTree.addBranchNode(prodType.STRING_EXPR);
-			this.pTree.endChildren();
-			return true;
-		}
-		return false;
-		
-		
-	}
-	public boolean parseBoolExpr(){
-		if(match(boolEList()) == Lexer.tokenType.LPAREN){
+	public boolean parsePrint(){                                 //prod 11
+		System.out.println("parsePrint()");
+		this.addLeafNextTok(this.currentToken.getLiteralT());
+		if(match(termList(Lexer.tokenType.LPAREN)) != null){
 			this.addLeafNextTok(this.currentToken.getLiteralT());
 			if(match(eList()) != null){
 				this.pTree.addBranchNode(prodType.EXPR);
-				parseExpr();
-				if(match(bOpList()) != null){
-					this.pTree.addBranchNode(prodType.BOOLOP);
-					parseBoolop();
-					if(match())
+				if(!parseExpr()){
+					this.pTree.endChildren();
+					return false;
+				}
+				if(match(termList(Lexer.tokenType.RPAREN)) != null){
+					this.addLeafNextTok(this.currentToken.getLiteralT());
+					this.pTree.endChildren();
+					return true;
+				}
+				else{
+					printError(Lexer.tokenType.RPAREN);
+					return false;
 				}
 			}
-			
-			this.pTree.addBranchNode(prodType.EXPR);
-			parseExpr();
-			if(match(termList(Lexer.tokenType.RPAREN)) != null){
+			else{
+				printError(eList());
+				return false;
+			}
+		}
+		else{
+			printError(Lexer.tokenType.LPAREN);
+			return false;
+		}
+	}
+	public boolean parseAssign(){                      //prod 12
+		if(match(idList()) != null){
+			System.out.println("parseAssign()");
+			this.pTree.addBranchNode(prodType.ID);
+			if(!parseId()){
+				this.pTree.endChildren();
+				return false;
+			}
+			if(match(termList(Lexer.tokenType.ASSIGN)) != null){
 				this.addLeafNextTok(this.currentToken.getLiteralT());
+				if(match(eList()) != null){
+					this.pTree.addBranchNode(prodType.EXPR);
+					if(!parseExpr()){
+						this.pTree.endChildren();
+						return false;
+					}
+						this.pTree.endChildren();
+						return true;
+				}
+				else{
+					printError(eList());
+					return false;
+				}
+			}
+			else{
+				printError(Lexer.tokenType.ASSIGN);
+				return false;
+			}
+		}
+		else{
+			printError(idList());
+			return false;
+		}
+	}
+	public boolean parseVarDecl(){                    //prod 13
+		if(match(typeList()) != null){
+			System.out.println("parseVarDecl()");
+			this.pTree.addBranchNode(prodType.TYPE);
+			if(!parseType()){
+				this.pTree.endChildren();
+				return false;
+			}
+			if(match(idList()) != null){
+				this.pTree.addBranchNode(prodType.ID);
+				if(!parseId()){
+					this.pTree.endChildren();
+					return false;
+				}
 				this.pTree.endChildren();
 				return true;
 			}
-			this.pTree.endChildren();
+			else{
+				printError(idList());
+				return false;
+			}
+		}
+		else{
+			printError(typeList());
 			return false;
 		}
-		else if(match(bValList()) != null){
-			this.pTree.addBranchNode(prodType.BOOLVAL);
-			parseBoolval();
+	}
+	public boolean parseWhile(){                      //prod 14
+		System.out.println("parseWhile()");
+		this.addLeafNextTok(this.currentToken.getLiteralT());
+		if(match(boolEList()) != null){
+			this.pTree.addBranchNode(prodType.BOOLEAN_EXPR);
+			if(!parseBoolExpr()){                        
+				this.pTree.endChildren();
+				return false;
+			}
+			if(match(blockList()) != null){
+				this.pTree.addBranchNode(prodType.BLOCK);
+				if(!parseBlock()){
+					this.pTree.endChildren();
+					return false;
+				}
+				this.pTree.endChildren();
+				return true;
+			}
+			else{
+				printError(blockList());
+				return false;
+			}
+			
+		}
+		else{
+			printError(boolEList());
+			return false;
+		}
+	}
+	public boolean parseIf(){                             //prod 15
+		System.out.println("parseIf()");
+		this.addLeafNextTok(this.currentToken.getLiteralT());
+		if(match(boolEList()) != null){
+			this.pTree.addBranchNode(prodType.BOOLEAN_EXPR);
+			if(!parseBoolExpr()){
+				this.pTree.endChildren();
+				return false;
+			}
+			if(match(blockList()) != null){
+				this.pTree.addBranchNode(prodType.BLOCK);
+				if(!parseBlock()){
+					this.pTree.endChildren();
+					return false;
+				}
+				this.pTree.endChildren();
+				return true;
+			}
+			else{
+				printError(blockList());
+				return false;
+			}
+		}
+		else{
+			printError(boolEList());
+			return false;
+		}
+	}
+	public boolean parseExpr(){                       
+		System.out.println("parseExpr()");
+		if(match(intEList()) != null){                       //prod 16
+			this.pTree.addBranchNode(prodType.INT_EXPR);
+			if(!parseIntExpr()){
+				this.pTree.endChildren();
+				return false;
+			}
 			this.pTree.endChildren();
 			return true;
 		}
-		return false;
+		else if(match(strEList()) != null){                 //prod 17
+			this.pTree.addBranchNode(prodType.STRING_EXPR);
+			if(!parseStrExpr()){
+				this.pTree.endChildren();
+				return false;
+			}
+			this.pTree.endChildren();
+			return true;
+		}
+		else if(match(boolEList()) != null){                //prod 18
+			this.pTree.addBranchNode(prodType.BOOLEAN_EXPR);
+			if(!parseBoolExpr()){
+				this.pTree.endChildren();
+				return false;
+			}
+			this.pTree.endChildren();
+			return true;
+		}
+		else if(match(idList()) != null){                   //prod 19
+			this.pTree.addBranchNode(prodType.ID);
+			if(!parseId()){
+				this.pTree.endChildren();
+				return false;
+			}
+			this.pTree.endChildren();
+			return true;
+		}
+		else{
+			printError(eList());
+			return false;
+		}
+	}
+	public boolean parseIntExpr(){                     //prod 20/21
+		System.out.println("parseIntExpr()");
+		if(match(digitList()) != null){
+			this.pTree.addBranchNode(prodType.DIGIT);
+			if(!parseDigit()){
+				this.pTree.endChildren();
+				return false;
+			}
+			if(match(intopList()) != null){
+				this.pTree.addBranchNode(prodType.INTOP);
+				if(!parseIntop()){
+					this.pTree.endChildren();
+					return false;
+				}
+				if(match(eList()) != null){
+					this.pTree.addBranchNode(prodType.EXPR);
+					if(!parseExpr()){
+						this.pTree.endChildren();
+						return false;
+					}
+					this.pTree.endChildren();
+					return true;
+				}
+				else{
+					printError(eList());
+					return false;
+				}
+			}
+			else{   
+				this.pTree.endChildren();
+				return true;
+			}
+		}
+		else{
+			printError(digitList());
+			return false;
+		}
+	}
+	public boolean parseStrExpr(){                         //prod 22
+		System.out.println("parseStrExpr()");
+		if(match(strEList()) != null){
+			this.addLeafNextTok(this.currentToken.getLiteralT());
+			this.pTree.addBranchNode(prodType.CHAR_LIST);
+			if(match(cLList()) != null){
+				if(!parseCharList()){
+					this.pTree.endChildren();
+					return false;
+				}
+				if(match(strEList()) != null){       
+					this.addLeafNextTok(this.currentToken.getLiteralT());
+					this.pTree.endChildren();
+					return true;
+				}
+				else{
+					printError(strEList());
+					return false;
+				}
+			}
+			else{
+				this.pTree.endChildren();  //nullable
+				return true;
+			}
+		}
+		else{
+			printError(strEList());
+			return false;
+		}
+	}
+	public boolean parseBoolExpr(){
+		System.out.println("parseBoolExpr()");
+		if(match(termList(Lexer.tokenType.LPAREN)) != null){    //prod 23
+			this.addLeafNextTok(this.currentToken.getLiteralT());
+			if(match(eList()) != null){
+				this.pTree.addBranchNode(prodType.EXPR);
+				if(!parseExpr()){
+					this.pTree.endChildren();
+					return false;
+				}
+				if(match(bOpList()) != null){
+					this.pTree.addBranchNode(prodType.BOOLOP);
+					if(!parseBoolop()){
+						this.pTree.endChildren();
+						return false;
+					}
+					if(match(eList()) != null){
+						this.pTree.addBranchNode(prodType.EXPR);
+						if(!parseExpr()){
+							this.pTree.endChildren();
+							return false;
+						}
+						if(match(termList(Lexer.tokenType.LPAREN)) != null){
+							this.addLeafNextTok(this.currentToken.getLiteralT());
+							this.pTree.endChildren();
+							return true;
+						}
+						else{
+							printError(Lexer.tokenType.LPAREN);
+							return false;
+						}
+					}
+					else{
+						printError(eList());
+						return false;
+					}
+				}
+				else{
+					printError(bOpList());
+					return false;
+				}
+			}
+			else{
+				printError(eList());
+				return false;
+			}
+		}
+		else if(match(bValList()) != null){            //prod 24
+			this.pTree.addBranchNode(prodType.BOOLVAL);
+			if(!parseBoolval()){
+				this.pTree.endChildren();
+				return false;
+			}
+			this.pTree.endChildren();
+			return true;
+		}
+		else{
+			printError(boolEList());
+			return false;
+		}
 	}
 	public boolean parseId(){
-		if(match(idList()) != null){   //distinction between char and id is made in lexer
+		if(match(idList()) != null){              //distinction between char and id is made in lexer
 			System.out.println("parseId()");
-			this.pTree.addBranchNode(prodType.ID);
+			this.addLeafNextTok(this.currentToken.getLiteralT());
 			this.pTree.endChildren();
 			return true;
 		}
-		return false;
+		else{
+			printError(idList());    //not sure if this will reach
+			return false;
+		}
 	}
 	public boolean parseCharList(){
 		System.out.println("parseCharList()");
 		if(match(cLList()) != null){
 			if(match(cLList()) == Lexer.tokenType.CHAR){
 				this.pTree.addBranchNode(prodType.CHAR);
-				parseChar();
+				if(!parseChar()){
+					this.pTree.endChildren();
+					return false;
+				}
 			}
 			else if(match(cLList()) == Lexer.tokenType.SPACE){
 				this.pTree.addBranchNode(prodType.SPACE);
-				parseSpace();			
+				if(!parseSpace()){
+					this.pTree.endChildren();
+					return false;
+				}
 			}
 			this.pTree.addBranchNode(prodType.CHAR_LIST);
-			parseCharList();
-			this.pTree.endChildren();
+			if(match(cLList()) != null){
+				if(!parseCharList()){
+					this.pTree.endChildren();
+					return false;
+				}
+				this.pTree.endChildren();
+				return true;
+			}
+			else{
+				this.pTree.endChildren();
+				return true;               //nullable
+			}
 		}
-		return true; //because empty is valid?
+		else{
+			this.pTree.endChildren();
+			return true; //because nullable    not sure if it will reach here
+		}
 	}
 
 	public boolean parseType(){
 		if(match(typeList()) != null){
 			System.out.println("parseType()");
 			this.addLeafNextTok(this.currentToken.getLiteralT());
+			this.pTree.endChildren();
 			return true;
 		}
-		return false;
+		else{
+			printError(typeList());
+			return false;
+		}
 	}
 	public boolean parseChar(){
 		if(match(charList()) != null){
 			System.out.println("parseChar()");
 			this.addLeafNextTok(this.currentToken.getLiteralT());
+			this.pTree.endChildren();
 			return true;
 		}
-		return false;
-		
+		else{
+			printError(charList());
+			return false;
+		}
 	}
 	public boolean parseSpace(){
 		if(match(spaceList()) != null){
 			System.out.println("parseSpace()");
 			this.addLeafNextTok(this.currentToken.getLiteralT());
+			this.pTree.endChildren();
 			return true;
 		}
-		return false;
+		else{
+			printError(spaceList());
+			return false;
+		}
 	}
 	public boolean parseDigit(){
 		if(match(digitList()) != null){
 			System.out.println("parseDigit()");
 			this.addLeafNextTok(this.currentToken.getLiteralT());
+			this.pTree.endChildren();
 			return true;
 		}
-		return false;
+		else{
+			printError(digitList());
+			return false;
+		}
 	}
 	public boolean parseBoolop(){
 		if(match(bOpList()) != null){
 			System.out.println("parseBoolop()");
 			this.addLeafNextTok(this.currentToken.getLiteralT());
+			this.pTree.endChildren();
 			return true;
 		}
-		return false;
+		else{
+			printError(bOpList());
+			return false;
+		}
 	}
 	public boolean parseBoolval(){
 		if(match(bValList()) != null){
 			System.out.println("parseBoolval()");
 			this.addLeafNextTok(this.currentToken.getLiteralT());
+			this.pTree.endChildren();
 			return true;
 		}
-		return false;
+		else{
+			printError(bValList());
+			return false;
+		}
 	}
 	public boolean parseIntop(){
 		if(match(intopList()) != null){
 			System.out.println("parseIntop()");
 			this.addLeafNextTok(this.currentToken.getLiteralT());
+			this.pTree.endChildren();
 			return true;
 		}
-		return false;
+		else{
+			printError(intopList());
+			return false;
+		}
 	}
 	public Lexer.tokenType match(List<Lexer.tokenType> tokenTypesL){
 		Lexer.Token cT = this.currentToken;
 		Lexer.tokenType returnType = null;
 		boolean termMatched = false;
 		int i = 0;
-		while(!termMatched || i < tokenTypesL.size()){
+		while(!termMatched && i < tokenTypesL.size()){
 			if(this.currentToken.getType() == tokenTypesL.get(i)){	
 				switch(this.currentToken.getType()){
 					case KEYWORD:      
@@ -471,6 +749,7 @@ public class Parser {
 						break;                                       //if not a keyword, then we just send the literal token of the requested tokentype
 				}
 			}
+			i++;
 		}
 		//else{
 			//prod error, type requested is not the type of the current token.
@@ -480,7 +759,6 @@ public class Parser {
 		}
 		return returnType;
 	}
-	
 	/*------------------------|
 	 *                        |
 	 * First Sets             |
@@ -604,6 +882,18 @@ public class Parser {
 	
 	public void printError(Lexer.tokenType expected){
 		System.out.println("Error: Expected [" + expected + "] got [" + this.currentToken.getType()
-        + "on line " + this.currentToken.lineNum);
+        + "] on line " + this.currentToken.lineNum);
+	}
+	public void printError(List<Lexer.tokenType> expectedList){
+		String error = "Error: Expected [";
+		for(int i = 0; i < expectedList.size(); i++){
+			error += expectedList.get(i);
+			if(i != expectedList.size()-1){
+				error += "], or [";
+			}
+		}
+		error += "] got [" + this.currentToken.getType() + "] on line " + this.currentToken.lineNum;
+		System.out.println(error);
 	}
 }
+

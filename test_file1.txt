@@ -1,6 +1,6 @@
 /* Good Code */
-{1 = 2}$
-/*
+{a = 2}$
+
 {}$
 
 {{{{{{}}}}}}$
@@ -79,4 +79,3 @@ lines"}$
 {thisisnotalexeme}$
 
 {thisisnotalexeme = 1}
-*/
