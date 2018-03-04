@@ -106,42 +106,127 @@ public class Parser {
 	public static void parse(List<Lexer.Token> tList){
 		System.out.println("parse()");
 		Parser p = new Parser(tList);
-		p.parseProg();
+		
+		if(p.parseProg()){
+			System.out.println("Parse completed successfully");
+		}
+		else{
+			System.out.println("Parse failed");
+		}
 	}
 	
 	public boolean parseProg(){
-		this.pTree.addBranchNode(prodType.BLOCK);
-		if(parseBlock() && match(Lexer.tokenType.EOP)){
+		if(match(progList()) != null){
 			System.out.println("parseProg()");
-			this.pTree.endChildren();
-			return true;
+			this.pTree.addBranchNode(prodType.BLOCK);
+			if(!parseBlock()){                                   //prod 1 
+				return false;
+			}
+			if(match(termList(Lexer.tokenType.EOP)) != null){    //prod 1
+				this.addLeafNextTok(this.currentToken.getLiteralT());
+				this.pTree.endChildren();
+				return true;
+			}
+			else{
+				printError(Lexer.tokenType.EOP);
+				return false;
+			}
 		}
-		return false;
+		else{
+			printError(Lexer.tokenType.LCBRACE);
+			return false;
+		}
 	}
 	public boolean parseBlock(){
-		this.pTree.addBranchNode(prodType.STATEMENT_LIST);
-		if(match(Lexer.tokenType.LCBRACE) && parseStmtList() && match(Lexer.tokenType.RCBRACE)){
-			System.out.println("parseBlock()");
-			this.pTree.endChildren();
-			return true;
+		System.out.println("parseBlock()");
+		if(match(blockList()) != null){                                //prod 2
+			this.addLeafNextTok(this.currentToken.getLiteralT());
+			this.pTree.addBranchNode(prodType.STATEMENT_LIST);
+			if(!parseStmtList()){                                     //prod 2
+				return false;
+			}
+			if(match(termList(Lexer.tokenType.RCBRACE)) != null){      //prod 2
+				this.addLeafNextTok(this.currentToken.getLiteralT());
+				this.pTree.endChildren();
+				return true;
+			}
+			else{
+				printError(Lexer.tokenType.RCBRACE);
+				return false;
+			}
 		}
-		return false;
+		else{
+			printError(Lexer.tokenType.LCBRACE);
+			return false;
+		}
 	}
 	public boolean parseStmtList(){
 		System.out.println("parseStatementList()");
-		if(parseStmt()){  //parseStmtList() would always be true cause of E
+		if(match(stmtList()) != null){                    //prod 3
 			this.pTree.addBranchNode(prodType.STATEMENT);
+			if(!parseStmt()){					//first of stmt is first of stmtList without null so we need match before parsing
+				return false;
+			}
 			this.pTree.addBranchNode(prodType.STATEMENT_LIST);
-			parseStmtList();
+			if(!parseStmtList()){                         //prod 3
+				return false;
+			}
 			this.pTree.endChildren();
 		}
-		return true;
+		return true;                           //prod 4
 	}
 	public boolean parseStmt(){
-		if(parsePrint() || parseAssign() || parseVarDecl() || parseWhile() 
-		|| parseIf() || parseBlock()){
+		if(match(keywordList()) != null){      //print, if, or, while
 			System.out.println("parseStatement()");
-			this.pTree.addBranchNode(prodType.STATEMENT);
+			if(this.currentToken.getLiteralT().equals("print")){       //prod 5
+				this.pTree.addBranchNode(prodType.PRINT_STATEMENT);     
+				if(!parsePrint()){
+					this.pTree.endChildren();
+					return false;
+				}
+				this.pTree.endChildren();
+			}
+			else if(this.currentToken.getLiteralT().equals("if")){     //prod 9
+				this.pTree.addBranchNode(prodType.IF_STATEMENT);
+				if(!parseIf()){
+					this.pTree.endChildren();
+					return false;
+				}
+			}
+			else if(this.currentToken.getLiteralT().equals("while")){  //prod 8
+				this.pTree.addBranchNode(prodType.WHILE_STATEMENT);
+				if(!parseWhile()){
+					this.pTree.endChildren();
+					return false;
+				}
+			}
+			this.pTree.endChildren();
+			return true;
+		}
+		else if(match(assignList()) != null){                          //prod 6
+			this.pTree.addBranchNode(prodType.ASSIGNMENT_STATEMENT);
+			if(!parseAssign()){
+				this.pTree.endChildren();
+				return false;
+			}
+			this.pTree.endChildren();
+			return true;
+		}
+		else if(match(varDList()) != null){                             //prod 7
+			this.pTree.addBranchNode(prodType.VAR_DECL);
+			if(!parseVarDecl()){
+				this.pTree.endChildren();
+				return false;
+			}
+			this.pTree.endChildren();
+			return true;
+		}
+		else if(match(blockList()) != null){                         //prod 10
+			this.pTree.addBranchNode(prodType.BLOCK);
+			if(!parseBlock()){
+				this.pTree.endChildren();
+				return false;
+			}
 			this.pTree.endChildren();
 			return true;
 		}
@@ -213,6 +298,11 @@ public class Parser {
 		return false;
 	}
 	public boolean parseStrExpr(){
+		if(match(termList(Lexer.tokenType.DQUOTE)) != null){
+			this.addLeafNextTok(this.currentToken.getLiteralT());
+			parseCharList();
+		}
+		
 		if(match(Lexer.tokenType.DQUOTE) && parseCharList() 
 		&& match(Lexer.tokenType.DQUOTE)){
 			System.out.println("parse()");
@@ -225,18 +315,38 @@ public class Parser {
 		
 	}
 	public boolean parseBoolExpr(){
-		if((match(Lexer.tokenType.LPAREN) && parseExpr() 
-		&& parseBoolop() && parseExpr() && match(Lexer.tokenType.LPAREN))
-		|| parseBoolval()){
-			System.out.println("parseBoolExpr()");
-			this.pTree.addBranchNode(prodType.BOOLEAN_EXPR);
+		if(match(boolEList()) == Lexer.tokenType.LPAREN){
+			this.addLeafNextTok(this.currentToken.getLiteralT());
+			if(match(eList()) != null){
+				this.pTree.addBranchNode(prodType.EXPR);
+				parseExpr();
+				if(match(bOpList()) != null){
+					this.pTree.addBranchNode(prodType.BOOLOP);
+					parseBoolop();
+					if(match())
+				}
+			}
+			
+			this.pTree.addBranchNode(prodType.EXPR);
+			parseExpr();
+			if(match(termList(Lexer.tokenType.RPAREN)) != null){
+				this.addLeafNextTok(this.currentToken.getLiteralT());
+				this.pTree.endChildren();
+				return true;
+			}
 			this.pTree.endChildren();
-			return true;		
+			return false;
+		}
+		else if(match(bValList()) != null){
+			this.pTree.addBranchNode(prodType.BOOLVAL);
+			parseBoolval();
+			this.pTree.endChildren();
+			return true;
 		}
 		return false;
 	}
 	public boolean parseId(){
-		if(match(Lexer.tokenType.ID)){   //distinction between char and id is made in lexer
+		if(match(idList()) != null){   //distinction between char and id is made in lexer
 			System.out.println("parseId()");
 			this.pTree.addBranchNode(prodType.ID);
 			this.pTree.endChildren();
@@ -245,27 +355,21 @@ public class Parser {
 		return false;
 	}
 	public boolean parseCharList(){
+		System.out.println("parseCharList()");
 		if(match(cLList()) != null){
 			if(match(cLList()) == Lexer.tokenType.CHAR){
+				this.pTree.addBranchNode(prodType.CHAR);
 				parseChar();
-				this.pTree.addBranchNode(prodType.CHAR_LIST);
 			}
 			else if(match(cLList()) == Lexer.tokenType.SPACE){
-				parseSpace();
-				
+				this.pTree.addBranchNode(prodType.SPACE);
+				parseSpace();			
 			}
 			this.pTree.addBranchNode(prodType.CHAR_LIST);
+			parseCharList();
 			this.pTree.endChildren();
-		}
-		if((parseChar() && parseCharList()) 
-		|| (parseSpace() && parseCharList()) ){
-			System.out.println("parseCharList()");
-			this.pTree.addBranchNode(prodType.CHAR_LIST);
-			this.pTree.endChildren();
-			return true;
 		}
 		return true; //because empty is valid?
-		//or empty?
 	}
 
 	public boolean parseType(){
@@ -428,9 +532,10 @@ public class Parser {
 		enumL.add(Lexer.tokenType.ID);
 		return enumL;
 	}
-	public static List<Lexer.tokenType> booEList(){
+	public static List<Lexer.tokenType> boolEList(){
 		List<Lexer.tokenType> enumL = new ArrayList<Lexer.tokenType>();
 		enumL.add(Lexer.tokenType.LPAREN);
+		enumL.addAll(bValList());
 		return enumL;
 	}
 	public static List<Lexer.tokenType> strEList(){
@@ -490,5 +595,15 @@ public class Parser {
 		enumL.addAll(blockList());
 		return enumL;
 	}
+	//for other random terminals i have to check for
+	public static List<Lexer.tokenType> termList(Lexer.tokenType termEnum){
+		List<Lexer.tokenType> enumL = new ArrayList<Lexer.tokenType>();
+		enumL.add(termEnum);
+		return enumL;
+	}
 	
+	public void printError(Lexer.tokenType expected){
+		System.out.println("Error: Expected [" + expected + "] got [" + this.currentToken.getType()
+        + "on line " + this.currentToken.lineNum);
+	}
 }
