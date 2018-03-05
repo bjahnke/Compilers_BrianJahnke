@@ -35,6 +35,8 @@ public class Parser {
 		INTOP;
 	}
 	
+//Source: https://stackoverflow.com/questions/3522454/java-tree-data-structure
+//Helped with making a generic class tree
 	public static class Tree<N>{
 		private Node<N> root;
 		private Node<N> currentNode;
@@ -69,6 +71,32 @@ public class Parser {
 			public void assignParent(Node<N> par){
 				this.parent = par;
 			}
+			public String toString(){
+				if((this.children != null && !this.children.isEmpty()) 
+				|| this.data == prodType.STATEMENT_LIST
+				|| this.data == prodType.CHAR_LIST){
+					return " <" + this.data + "> ";
+				}
+				else{
+					return " [" + this.data + "] ";
+				}
+			}
+			public String childrenToString(){
+				if(this.hasChildren()){
+					String childrenStr = "(";
+					for(Node<N> node : this.children){
+						childrenStr += node.toString();
+					}
+					return childrenStr + ")";
+				}
+				return "";
+			}
+			public boolean hasChildren(){
+				if(this.children != null && !this.children.isEmpty()){
+					return true;
+				}
+				return false;
+			}
 		}
 		public void setCurrentNode(Node<N> node){
 			this.currentNode = node;
@@ -87,8 +115,29 @@ public class Parser {
 		public void endChildren(){
 			this.currentNode = this.currentNode.parent;
 		}
+		public void printTree(){
+			List<Node<N>> root = new ArrayList<Node<N>>();
+			root.add(this.currentNode);
+			System.out.println(root.get(0).toString());
+			printTree2(root);
+		}
+		public void printTree2(List<Node<N>> nTerms){  //starts with just prog
+			List<Node<N>> nonTerms = nTerms;
+			List<Node<N>> childNTerms = new ArrayList<Node<N>>();
+			for(Node<N> node : nonTerms){
+				if(node.hasChildren()){
+					System.out.print(node.childrenToString());
+				}
+				if(node.hasChildren()){
+					childNTerms.addAll(node.children);
+				}
+			}
+			System.out.println("");
+			if(!childNTerms.isEmpty()){
+				printTree2(childNTerms);
+			}
+		}
 	}
-	
 	public Parser(List<Lexer.Token> tList){
 		this.cTokInd = 0;
 		this.pTree = new Tree(prodType.PROGRAM);
@@ -106,14 +155,16 @@ public class Parser {
 		}
 	}
 	public static void parse(List<Lexer.Token> tList){
-		System.out.println("\nparse()");
+		System.out.println("parse()");
 		Parser p = new Parser(tList);
 		
 		if(p.parseProg()){
-			System.out.println("Parse completed successfully\n");
+			System.out.println("Parse completed successfully\n\nCST:\n");
+			p.pTree.printTree();
 		}
 		else{
-			System.out.println("Parse failed\n");
+			System.out.println("Parse failed\nCST skipped due to parse failure\n.");
+			
 		}
 	}
 	
@@ -122,11 +173,12 @@ public class Parser {
 			System.out.println("parseProg()");
 			this.pTree.addBranchNode(prodType.BLOCK);
 			if(!parseBlock()){                                   //prod 1 
+				this.pTree.endChildren();
 				return false;
 			}
 			if(match(termList(Lexer.tokenType.EOP)) != null){    //prod 1
 				this.addLeafNextTok(this.currentToken.getLiteralT());
-				this.pTree.endChildren();
+				//this.pTree.endChildren();
 				return true;
 			}
 			else{
@@ -145,23 +197,20 @@ public class Parser {
 			this.addLeafNextTok(this.currentToken.getLiteralT());
 			this.pTree.addBranchNode(prodType.STATEMENT_LIST);
 			if(match(stmtLList()) != null){
-				if(!parseStmtList()){                                     //prod 2
-					this.pTree.endChildren();
-					return false;
-				}
-				if(match(termList(Lexer.tokenType.RCBRACE)) != null){      //prod 2
-					this.addLeafNextTok(this.currentToken.getLiteralT());
-					this.pTree.endChildren();
-					return true;
-				}
-				else{
-					printError(Lexer.tokenType.RCBRACE);
+				if(!parseStmtList()){                                     //prod 2/4
+					this.pTree.endChildren();								
 					return false;
 				}
 			}
-			else{
+			this.pTree.endChildren();
+			if(match(termList(Lexer.tokenType.RCBRACE)) != null){      //prod 2
+				this.addLeafNextTok(this.currentToken.getLiteralT());
 				this.pTree.endChildren();
-				return true;     //because nullable              prod 4 
+				return true;
+			}
+			else{
+				printError(Lexer.tokenType.RCBRACE);
+				return false;
 			}
 		}
 		else{
@@ -187,6 +236,7 @@ public class Parser {
 				return true;
 			}
 			else{
+				System.out.println("parseStatementList()");
 				this.pTree.endChildren();                   //prod 4 
 				return true; //because nullable;
 			}
@@ -197,15 +247,14 @@ public class Parser {
 		}
 	}
 	public boolean parseStmt(){
+		System.out.println("parseStatement()");
 		if(match(keywordList()) != null){      //print, if, or, while
-			System.out.println("parseStatement()");
 			if(this.currentToken.getLiteralT().equals("print")){       //prod 5
 				this.pTree.addBranchNode(prodType.PRINT_STATEMENT);     
 				if(!parsePrint()){
 					this.pTree.endChildren();
 					return false;
 				}
-				this.pTree.endChildren();
 			}
 			else if(this.currentToken.getLiteralT().equals("if")){     //prod 9
 				this.pTree.addBranchNode(prodType.IF_STATEMENT);
@@ -493,19 +542,16 @@ public class Parser {
 					this.pTree.endChildren();
 					return false;
 				}
-				if(match(strEList()) != null){       
-					this.addLeafNextTok(this.currentToken.getLiteralT());
-					this.pTree.endChildren();
-					return true;
-				}
-				else{
-					printError(strEList());
-					return false;
-				}
+			}
+			this.pTree.endChildren();
+			if(match(strEList()) != null){       
+				this.addLeafNextTok(this.currentToken.getLiteralT());
+				this.pTree.endChildren();
+				return true;
 			}
 			else{
-				this.pTree.endChildren();  //nullable
-				return true;
+				printError(strEList());
+				return false;
 			}
 		}
 		else{
@@ -535,13 +581,13 @@ public class Parser {
 							this.pTree.endChildren();
 							return false;
 						}
-						if(match(termList(Lexer.tokenType.LPAREN)) != null){
+						if(match(termList(Lexer.tokenType.RPAREN)) != null){
 							this.addLeafNextTok(this.currentToken.getLiteralT());
 							this.pTree.endChildren();
 							return true;
 						}
 						else{
-							printError(Lexer.tokenType.LPAREN);
+							printError(Lexer.tokenType.RPAREN);
 							return false;
 						}
 					}
@@ -714,40 +760,7 @@ public class Parser {
 		int i = 0;
 		while(!termMatched && i < tokenTypesL.size()){
 			if(this.currentToken.getType() == tokenTypesL.get(i)){	
-				switch(this.currentToken.getType()){
-					case KEYWORD:      
-						if(this.pTree.currentNode.data == prodType.PRINT_STATEMENT){
-							if(cT.getLiteralT().equals("print")){
-								termMatched = true;
-							}
-							else{
-								//Production error-- we expect print because the current node is parsingPrint but is not present
-							}
-						}
-						else if(this.pTree.currentNode.data == prodType.WHILE_STATEMENT){
-							if(cT.getLiteralT().equals("while")){
-								termMatched = true;
-							}
-							else{
-								//Production error
-							}
-						}
-						else if(this.pTree.currentNode.data == prodType.IF_STATEMENT){
-							if(cT.getLiteralT().equals("if")){
-								termMatched = true;
-							}
-							else{
-								//Production error
-							}
-						}
-						else{
-							//error?
-						}
-						break;
-					default:
-						termMatched = true;                         //since we already know that the current token equals the one requested,
-						break;                                       //if not a keyword, then we just send the literal token of the requested tokentype
-				}
+				termMatched = true;
 			}
 			i++;
 		}
@@ -832,6 +845,7 @@ public class Parser {
 		enumL.add(Lexer.tokenType.DQUOTE);
 		enumL.add(Lexer.tokenType.LPAREN);
 		enumL.add(Lexer.tokenType.ID);
+		enumL.add(Lexer.tokenType.BOOLVAL);
 		return enumL;
 	}
 	public static List<Lexer.tokenType> keywordList(){

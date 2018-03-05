@@ -1,4 +1,6 @@
 /* Good Code */
+{print(" a")}$
+
 {a = 2}$
 
 {}$
@@ -13,7 +15,7 @@
 
 {print(2)}$
 
-{print("a")}$
+{print(" a")}$
 
 {print(false)}$
 

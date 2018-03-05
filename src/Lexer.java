@@ -21,7 +21,6 @@ public class Lexer {
 	public static List<String> warningList = new ArrayList<String>();
 	public static List<Token> progList = new ArrayList<Token>();
 	public static int progNum = 1;   //compare with eop symbol number to see if there is a missing symbol.
-	public static int eopNum = 0;
 	public static int progErrorCount = 0;
 	public static boolean errorInProg = false;
 	public static int lineNum = 1;
@@ -251,9 +250,6 @@ public class Lexer {
 				newTok = new Token(tokenType.EOP, "$", lineNum);
 				//progList.add((String)input.subSequence(0, i));
 				//eopNum++;
-				if(i < input.length()-1) {
-					progNum++;
-				}
 				eop = true;
 			}
 			else if(digitM.matches()) {
@@ -284,15 +280,16 @@ public class Lexer {
 				if(eop){
 					if(errorInProg){
 						System.out.println("Lex completed with " + progErrorCount + " error(s)\n"
-								+ "Parse not ran on program.");
+								+ "Parse not ran on program.\n");
 						errorInProg = false;
 						progErrorCount = 0;
 					}
 					else{
-						System.out.println("Lex completed successfully\n");
+						System.out.println("Lex completed successfully\n\nParsing Program " + progNum);
 						Parser.parse(progList);
 						progList.clear();
 					}
+					progNum++;
 				}
 			}
 			else if(errorMsg != ""){
