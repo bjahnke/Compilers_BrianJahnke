@@ -364,7 +364,7 @@ public class Lexer {
 				+ "(1) Test file with custom path.\n"
 				+ "(2) Default test file. (Only For Brian)");
 		while(true){
-			System.out.println("Chose 1 or 2: ");
+			System.out.println("Choose 1 or 2: ");
 			int option = reader.nextInt();
 			if(option == 1){
 				System.out.println("Test File Path (include file name): ");

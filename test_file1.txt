@@ -70,7 +70,14 @@ lines"}$
 
 {intfintif=2}$
 
-{intii=0stringss="hello"booleanbb=(true==(1!=2))if(b==true){while(true!=(b!=(false==(2!=3)))){i=1+iprint(s)}}print("ugly code")}$
+{int i
+i=0
+string s
+s="hello"
+boolean b
+b = (true==(1!=2))
+if(b==true)
+{while(true!=(b!=(false==(2!=3)))){i=1+iprint(s)}}print("ugly code")}$
 
 {print(007)}$
 

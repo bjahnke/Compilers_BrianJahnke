@@ -34,7 +34,11 @@ public class Parser {
 		BOOLVAL,
 		INTOP;
 	}
-	
+	/*------------------------|
+	 *                        |
+	 * Tree, Node Classes     |
+	 *                        |
+	 ------------------------*/
 //Source: https://stackoverflow.com/questions/3522454/java-tree-data-structure
 //Helped with making a generic class tree
 	public static class Tree<N>{
@@ -89,6 +93,9 @@ public class Parser {
 					}
 					return childrenStr + ")";
 				}
+				else if(this.data == prodType.STATEMENT_LIST || this.data == prodType.CHAR_LIST){
+					return "(e)";
+				}
 				return "";
 			}
 			public boolean hasChildren(){
@@ -121,13 +128,14 @@ public class Parser {
 			System.out.println(root.get(0).toString());
 			printTree2(root);
 		}
-		public void printTree2(List<Node<N>> nTerms){  //starts with just prog
+		//Takes a list of non terminals and prints their children
+		public void printTree2(List<Node<N>> nTerms){ 
 			List<Node<N>> nonTerms = nTerms;
 			List<Node<N>> childNTerms = new ArrayList<Node<N>>();
 			for(Node<N> node : nonTerms){
-				if(node.hasChildren()){
+				//if(node.hasChildren()){
 					System.out.print(node.childrenToString());
-				}
+				//}
 				if(node.hasChildren()){
 					childNTerms.addAll(node.children);
 				}
@@ -137,30 +145,55 @@ public class Parser {
 				printTree2(childNTerms);
 			}
 		}
+		
+		public void printTree3(String depth){
+			if(this.currentNode.hasChildren()){
+				System.out.println(depth + this.currentNode.toString());
+				depth += "-";
+				for(Node<N> node : this.currentNode.children){	
+					this.setCurrentNode(node);
+					printTree3(depth);
+				}
+			}
+			else{
+				System.out.println(depth + this.currentNode.toString());
+				this.endChildren();
+			}
+		}
 	}
+	/*------------------------|
+	 *                        |
+	 * Parse Constructor      |
+	 * and Methods            |
+	 ------------------------*/
 	public Parser(List<Lexer.Token> tList){
 		this.cTokInd = 0;
 		this.pTree = new Tree(prodType.PROGRAM);
 		this.tokList = tList;
 		this.currentToken = tokList.get(0);
 	}
+	
 	public void nextToken(){
 			this.cTokInd++;
 			this.currentToken = this.tokList.get(cTokInd);
 	}
+	
 	public void addLeafNextTok(String term){
 		this.pTree.addLeafNode(term);
 		if(this.cTokInd < this.tokList.size()-1){
 			nextToken();
 		}
 	}
+	
 	public static void parse(List<Lexer.Token> tList){
 		System.out.println("parse()");
 		Parser p = new Parser(tList);
 		
 		if(p.parseProg()){
 			System.out.println("Parse completed successfully\n\nCST:\n");
-			p.pTree.printTree();
+			//p.pTree.printTree();
+			p.pTree.printTree3("");
+			System.out.println("\n");
 		}
 		else{
 			System.out.println("Parse failed\nCST skipped due to parse failure\n.");
@@ -191,6 +224,7 @@ public class Parser {
 			return false;
 		}
 	}
+	
 	public boolean parseBlock(){
 		System.out.println("parseBlock()");
 		if(match(blockList()) != null){                                //prod 2
@@ -218,6 +252,7 @@ public class Parser {
 			return false;
 		}
 	}
+	
 	public boolean parseStmtList(){
 		System.out.println("parseStatementList()");
 		if(match(stmtList()) != null){                    //prod 3
@@ -246,6 +281,7 @@ public class Parser {
 			return false;             //not sure if this is reachable
 		}
 	}
+	
 	public boolean parseStmt(){
 		System.out.println("parseStatement()");
 		if(match(keywordList()) != null){      //print, if, or, while
@@ -302,6 +338,7 @@ public class Parser {
 		}
 		return false; //not sure if this is right or what error it produces
 	}
+	
 	public boolean parsePrint(){                                 //prod 11
 		System.out.println("parsePrint()");
 		this.addLeafNextTok(this.currentToken.getLiteralT());
@@ -333,6 +370,7 @@ public class Parser {
 			return false;
 		}
 	}
+	
 	public boolean parseAssign(){                      //prod 12
 		if(match(idList()) != null){
 			System.out.println("parseAssign()");
@@ -367,6 +405,7 @@ public class Parser {
 			return false;
 		}
 	}
+	
 	public boolean parseVarDecl(){                    //prod 13
 		if(match(typeList()) != null){
 			System.out.println("parseVarDecl()");
@@ -394,6 +433,7 @@ public class Parser {
 			return false;
 		}
 	}
+	
 	public boolean parseWhile(){                      //prod 14
 		System.out.println("parseWhile()");
 		this.addLeafNextTok(this.currentToken.getLiteralT());
@@ -423,6 +463,7 @@ public class Parser {
 			return false;
 		}
 	}
+	
 	public boolean parseIf(){                             //prod 15
 		System.out.println("parseIf()");
 		this.addLeafNextTok(this.currentToken.getLiteralT());
@@ -451,6 +492,7 @@ public class Parser {
 			return false;
 		}
 	}
+	
 	public boolean parseExpr(){                       
 		System.out.println("parseExpr()");
 		if(match(intEList()) != null){                       //prod 16
@@ -494,6 +536,7 @@ public class Parser {
 			return false;
 		}
 	}
+	
 	public boolean parseIntExpr(){                     //prod 20/21
 		System.out.println("parseIntExpr()");
 		if(match(digitList()) != null){
@@ -532,6 +575,7 @@ public class Parser {
 			return false;
 		}
 	}
+	
 	public boolean parseStrExpr(){                         //prod 22
 		System.out.println("parseStrExpr()");
 		if(match(strEList()) != null){
@@ -559,6 +603,7 @@ public class Parser {
 			return false;
 		}
 	}
+	
 	public boolean parseBoolExpr(){
 		System.out.println("parseBoolExpr()");
 		if(match(termList(Lexer.tokenType.LPAREN)) != null){    //prod 23
@@ -620,6 +665,7 @@ public class Parser {
 			return false;
 		}
 	}
+	
 	public boolean parseId(){
 		if(match(idList()) != null){              //distinction between char and id is made in lexer
 			System.out.println("parseId()");
@@ -632,6 +678,7 @@ public class Parser {
 			return false;
 		}
 	}
+	
 	public boolean parseCharList(){
 		System.out.println("parseCharList()");
 		if(match(cLList()) != null){
@@ -681,6 +728,7 @@ public class Parser {
 			return false;
 		}
 	}
+	
 	public boolean parseChar(){
 		if(match(charList()) != null){
 			System.out.println("parseChar()");
@@ -705,6 +753,7 @@ public class Parser {
 			return false;
 		}
 	}
+	
 	public boolean parseDigit(){
 		if(match(digitList()) != null){
 			System.out.println("parseDigit()");
@@ -717,6 +766,7 @@ public class Parser {
 			return false;
 		}
 	}
+	
 	public boolean parseBoolop(){
 		if(match(bOpList()) != null){
 			System.out.println("parseBoolop()");
@@ -729,6 +779,7 @@ public class Parser {
 			return false;
 		}
 	}
+	
 	public boolean parseBoolval(){
 		if(match(bValList()) != null){
 			System.out.println("parseBoolval()");
@@ -741,6 +792,7 @@ public class Parser {
 			return false;
 		}
 	}
+	
 	public boolean parseIntop(){
 		if(match(intopList()) != null){
 			System.out.println("parseIntop()");
@@ -753,8 +805,8 @@ public class Parser {
 			return false;
 		}
 	}
+	
 	public Lexer.tokenType match(List<Lexer.tokenType> tokenTypesL){
-		Lexer.Token cT = this.currentToken;
 		Lexer.tokenType returnType = null;
 		boolean termMatched = false;
 		int i = 0;
@@ -764,14 +816,12 @@ public class Parser {
 			}
 			i++;
 		}
-		//else{
-			//prod error, type requested is not the type of the current token.
-		//}
 		if(termMatched){
 			returnType = this.currentToken.getType();
 		}
 		return returnType;
 	}
+	
 	/*------------------------|
 	 *                        |
 	 * First Sets             |
@@ -893,7 +943,11 @@ public class Parser {
 		enumL.add(termEnum);
 		return enumL;
 	}
-	
+	/*------------------------|
+	 *                        |
+	 * Error Print Methods    |
+	 *                        |
+	 ------------------------*/
 	public void printError(Lexer.tokenType expected){
 		System.out.println("Error: Expected [" + expected + "] got [" + this.currentToken.getType()
         + "] on line " + this.currentToken.lineNum);
