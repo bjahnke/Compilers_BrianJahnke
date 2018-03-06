@@ -93,9 +93,9 @@ public class Parser {
 					}
 					return childrenStr + ")";
 				}
-				else if(this.data == prodType.STATEMENT_LIST || this.data == prodType.CHAR_LIST){
-					return "(e)";
-				}
+				//else if(this.data == prodType.STATEMENT_LIST || this.data == prodType.CHAR_LIST){  //to show nulls not really needed
+				//	return "(e)";
+				//}
 				return "";
 			}
 			public boolean hasChildren(){
@@ -196,7 +196,7 @@ public class Parser {
 			System.out.println("\n");
 		}
 		else{
-			System.out.println("Parse failed\nCST skipped due to parse failure\n.");
+			System.out.println("Parse failed\nCST skipped due to parse failure\n");
 			
 		}
 	}
