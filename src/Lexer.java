@@ -337,7 +337,6 @@ public class Lexer {
 	            	charString += line.charAt(i);
 	            }	            
 			}
-			System.out.println(charString);
 			sc.close();
 		} catch (InputMismatchException | FileNotFoundException e) {
 			e.printStackTrace();
