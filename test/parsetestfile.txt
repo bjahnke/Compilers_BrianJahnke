@@ -5,6 +5,9 @@
 	string t
 	b = "hel lo"
 	t = "hey"
+}$
+
+{
 	while(b == "hello"){
 		t = "no"	
 		{
@@ -17,6 +20,7 @@
 {
 	int a
 	a = 0
+}$
 	if false{
 		a = 1 + a
 		print(a)
@@ -27,7 +31,8 @@
 {
 	boolean f
 	f = false
-	if((1+1 == 1+b) != (f == false)){
+}$
+	if((1+1 == 1+b) != (f == true)){
 		f = ( false == "yo" )
 	}
 }$
