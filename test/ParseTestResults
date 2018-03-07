@@ -1,0 +1,10 @@
+Test Results 
+Files used to test: parsetestfile.txt, test_file1.txt (Prof. Labouseur's lex test file)
+
+Verified that programs with valid syntax parsed correctly and each of these programs generated a CST.
+Verified that programs with illegal tokens did not parse.
+Verified that programs with illegal syntax did not generate a CST.
+Verified that programs with illegal syntax printed an error stating the possible expected token types 
+and the token type found with its line number.
+Verified through the CST that parent and child nodes are =assigned to on another in a way that 
+allows for the Tree to be properly traversed in its entirety 
