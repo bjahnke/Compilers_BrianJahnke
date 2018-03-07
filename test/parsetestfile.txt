@@ -1,0 +1,53 @@
+/* Should Parse Successful*/
+
+{
+	string b
+	string t
+	b = "hel lo"
+	t = "hey"
+	while(b == "hello"){
+		t = "no"	
+		{
+			t = "yes"
+			print(t)
+		}
+	}	
+}$
+
+{
+	int a
+	a = 0
+	if false{
+		a = 1 + a
+		print(a)
+		print("no")
+	}
+}$
+
+{
+	boolean f
+	f = false
+	if((1+1 == 1+b) != (f == false)){
+		f = ( false == "yo" )
+	}
+}$
+
+/* Shouldn't Be Successful */
+{int A}$
+
+{string b = "hello"}$
+
+{a = while false{}}$
+
+{1 + a}$
+
+{int c c = c + 1}$
+
+{if(false = true){}}$
+
+{whilefalse(){})$
+
+{if((true == false) != (false != false){}}$
+
+/* Warning */
+{{}}

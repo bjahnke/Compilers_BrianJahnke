@@ -267,10 +267,10 @@ public class Lexer {
 					progErrorCount++;
 					errorList.add(errorMsg);
 			}
-			if(input.charAt(input.length()-1) != '$') {
+			if(i == input.length()-1  && result.get(result.size()-1).getType() != tokenType.EOP) {
 				warningMsg = "Warning: $ at file end not present. Added Automatically to prevent failure.";
-				input = input + '$';
-				//warningList.add(warning);
+				newTok = new Token(tokenType.EOP, "$", lineNum); 
+				eop = true;
 			}
 			
 			if(newTok != null){
@@ -332,11 +332,12 @@ public class Lexer {
 			while (sc.hasNextLine()) {
 	            line = sc.nextLine();
 	            line = line.trim();
-	            line = line + "\n";
+	            line = line + "\n";                       //need for line number
 	            for(int i = 0; i < line.length(); i++) {
 	            	charString += line.charAt(i);
 	            }	            
 			}
+			System.out.println(charString);
 			sc.close();
 		} catch (InputMismatchException | FileNotFoundException e) {
 			e.printStackTrace();
