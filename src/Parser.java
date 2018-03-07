@@ -108,12 +108,14 @@ public class Parser {
 		public void setCurrentNode(Node<N> node){
 			this.currentNode = node;
 		}
+		@SuppressWarnings("unchecked")
 		public void addBranchNode(prodType pEnum){
 			Node n = new Node<N>((N)pEnum);
 			n.parent = this.currentNode;
 			this.currentNode.children.add(n);
 			this.currentNode = n;
 		}
+		@SuppressWarnings("unchecked")
 		public void addLeafNode(String term){
 			Node n = new Node<N>((N)term);
 			n.parent = this.currentNode;
