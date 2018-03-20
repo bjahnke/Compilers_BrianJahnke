@@ -188,24 +188,29 @@ public class Parser {
 	}
 	
 	public static void parse(List<Lexer.Token> tList){
-		verbosePrint("parse()");
+		TempMain.verbosePrint("parse()");
 		Parser p = new Parser(tList);
 		
 		if(p.parseProg()){
-			System.out.println("Parse completed successfully\n\nCST:\n");
-			//p.pTree.printTree();
-			p.pTree.printTree3("");
-			System.out.println("\n");
+			System.out.println("Parse completed successfully\n");
+			if(TempMain.isVerboseOnLP){
+				System.out.println("\nCST:\n");
+				//p.pTree.printTree();
+				p.pTree.printTree3("");
+				System.out.println("\n");
+			}
 		}
 		else{
-			System.out.println("Parse failed\nCST skipped due to parse failure\n");
-			
+				System.out.println("Parse failed\n");
+				if(TempMain.isVerboseOnLP){
+					System.out.println("CST skipped due to parse failure\n");
+				}
 		}
 	}
 	
 	public boolean parseProg(){
 		if(match(progList()) != null){
-			verbosePrint("parseProg()");
+			TempMain.verbosePrint("parseProg()");
 			this.pTree.addBranchNode(prodType.BLOCK);
 			if(!parseBlock()){                                   //prod 1 
 				this.pTree.endChildren();
@@ -228,7 +233,7 @@ public class Parser {
 	}
 	
 	public boolean parseBlock(){
-		verbosePrint("parseBlock()");
+		TempMain.verbosePrint("parseBlock()");
 		if(match(blockList()) != null){                                //prod 2
 			this.addLeafNextTok(this.currentToken.getLiteralT());
 			this.pTree.addBranchNode(prodType.STATEMENT_LIST);
@@ -256,7 +261,7 @@ public class Parser {
 	}
 	
 	public boolean parseStmtList(){
-		verbosePrint("parseStatementList()");
+		TempMain.verbosePrint("parseStatementList()");
 		if(match(stmtList()) != null){                    //prod 3
 			this.pTree.addBranchNode(prodType.STATEMENT);
 			if(!parseStmt()){			
@@ -273,7 +278,7 @@ public class Parser {
 				return true;
 			}
 			else{
-				verbosePrint("parseStatementList()");
+				TempMain.verbosePrint("parseStatementList()");
 				this.pTree.endChildren();                   //prod 4 
 				return true; //because nullable;
 			}
@@ -285,7 +290,7 @@ public class Parser {
 	}
 	
 	public boolean parseStmt(){
-		verbosePrint("parseStatement()");
+		TempMain.verbosePrint("parseStatement()");
 		if(match(keywordList()) != null){      //print, if, or, while
 			if(this.currentToken.getLiteralT().equals("print")){       //prod 5
 				this.pTree.addBranchNode(prodType.PRINT_STATEMENT);     
@@ -342,7 +347,7 @@ public class Parser {
 	}
 	
 	public boolean parsePrint(){                                 //prod 11
-		verbosePrint("parsePrint()");
+		TempMain.verbosePrint("parsePrint()");
 		this.addLeafNextTok(this.currentToken.getLiteralT());
 		if(match(termList(Lexer.tokenType.LPAREN)) != null){
 			this.addLeafNextTok(this.currentToken.getLiteralT());
@@ -375,7 +380,7 @@ public class Parser {
 	
 	public boolean parseAssign(){                      //prod 12
 		if(match(idList()) != null){
-			verbosePrint("parseAssign()");
+			TempMain.verbosePrint("parseAssign()");
 			this.pTree.addBranchNode(prodType.ID);
 			if(!parseId()){
 				this.pTree.endChildren();
@@ -410,7 +415,7 @@ public class Parser {
 	
 	public boolean parseVarDecl(){                    //prod 13
 		if(match(typeList()) != null){
-			verbosePrint("parseVarDecl()");
+			TempMain.verbosePrint("parseVarDecl()");
 			this.pTree.addBranchNode(prodType.TYPE);
 			if(!parseType()){
 				this.pTree.endChildren();
@@ -437,7 +442,7 @@ public class Parser {
 	}
 	
 	public boolean parseWhile(){                      //prod 14
-		verbosePrint("parseWhile()");
+		TempMain.verbosePrint("parseWhile()");
 		this.addLeafNextTok(this.currentToken.getLiteralT());
 		if(match(boolEList()) != null){
 			this.pTree.addBranchNode(prodType.BOOLEAN_EXPR);
@@ -467,7 +472,7 @@ public class Parser {
 	}
 	
 	public boolean parseIf(){                             //prod 15
-		verbosePrint("parseIf()");
+		TempMain.verbosePrint("parseIf()");
 		this.addLeafNextTok(this.currentToken.getLiteralT());
 		if(match(boolEList()) != null){
 			this.pTree.addBranchNode(prodType.BOOLEAN_EXPR);
@@ -496,7 +501,7 @@ public class Parser {
 	}
 	
 	public boolean parseExpr(){                       
-		verbosePrint("parseExpr()");
+		TempMain.verbosePrint("parseExpr()");
 		if(match(intEList()) != null){                       //prod 16
 			this.pTree.addBranchNode(prodType.INT_EXPR);
 			if(!parseIntExpr()){
@@ -540,7 +545,7 @@ public class Parser {
 	}
 	
 	public boolean parseIntExpr(){                     //prod 20/21
-		verbosePrint("parseIntExpr()");
+		TempMain.verbosePrint("parseIntExpr()");
 		if(match(digitList()) != null){
 			this.pTree.addBranchNode(prodType.DIGIT);
 			if(!parseDigit()){
@@ -579,7 +584,7 @@ public class Parser {
 	}
 	
 	public boolean parseStrExpr(){                         //prod 22
-		verbosePrint("parseStrExpr()");
+		TempMain.verbosePrint("parseStrExpr()");
 		if(match(strEList()) != null){
 			this.addLeafNextTok(this.currentToken.getLiteralT());
 			this.pTree.addBranchNode(prodType.CHAR_LIST);
@@ -607,7 +612,7 @@ public class Parser {
 	}
 	
 	public boolean parseBoolExpr(){
-		verbosePrint("parseBoolExpr()");
+		TempMain.verbosePrint("parseBoolExpr()");
 		if(match(termList(Lexer.tokenType.LPAREN)) != null){    //prod 23
 			this.addLeafNextTok(this.currentToken.getLiteralT());
 			if(match(eList()) != null){
@@ -670,7 +675,7 @@ public class Parser {
 	
 	public boolean parseId(){
 		if(match(idList()) != null){              //distinction between char and id is made in lexer
-			verbosePrint("parseId()");
+			TempMain.verbosePrint("parseId()");
 			this.addLeafNextTok(this.currentToken.getLiteralT());
 			this.pTree.endChildren();
 			return true;
@@ -682,7 +687,7 @@ public class Parser {
 	}
 	
 	public boolean parseCharList(){
-		verbosePrint("parseCharList()");
+		TempMain.verbosePrint("parseCharList()");
 		if(match(cLList()) != null){
 			if(match(cLList()) == Lexer.tokenType.CHAR){
 				this.pTree.addBranchNode(prodType.CHAR);
@@ -720,7 +725,7 @@ public class Parser {
 
 	public boolean parseType(){
 		if(match(typeList()) != null){
-			verbosePrint("parseType()");
+			TempMain.verbosePrint("parseType()");
 			this.addLeafNextTok(this.currentToken.getLiteralT());
 			this.pTree.endChildren();
 			return true;
@@ -733,7 +738,7 @@ public class Parser {
 	
 	public boolean parseChar(){
 		if(match(charList()) != null){
-			verbosePrint("parseChar()");
+			TempMain.verbosePrint("parseChar()");
 			this.addLeafNextTok(this.currentToken.getLiteralT());
 			this.pTree.endChildren();
 			return true;
@@ -745,7 +750,7 @@ public class Parser {
 	}
 	public boolean parseSpace(){
 		if(match(spaceList()) != null){
-			verbosePrint("parseSpace()");
+			TempMain.verbosePrint("parseSpace()");
 			this.addLeafNextTok(this.currentToken.getLiteralT());
 			this.pTree.endChildren();
 			return true;
@@ -758,7 +763,7 @@ public class Parser {
 	
 	public boolean parseDigit(){
 		if(match(digitList()) != null){
-			verbosePrint("parseDigit()");
+			TempMain.verbosePrint("parseDigit()");
 			this.addLeafNextTok(this.currentToken.getLiteralT());
 			this.pTree.endChildren();
 			return true;
@@ -771,7 +776,7 @@ public class Parser {
 	
 	public boolean parseBoolop(){
 		if(match(bOpList()) != null){
-			verbosePrint("parseBoolop()");
+			TempMain.verbosePrint("parseBoolop()");
 			this.addLeafNextTok(this.currentToken.getLiteralT());
 			this.pTree.endChildren();
 			return true;
@@ -784,7 +789,7 @@ public class Parser {
 	
 	public boolean parseBoolval(){
 		if(match(bValList()) != null){
-			verbosePrint("parseBoolval()");
+			TempMain.verbosePrint("parseBoolval()");
 			this.addLeafNextTok(this.currentToken.getLiteralT());
 			this.pTree.endChildren();
 			return true;
@@ -797,7 +802,7 @@ public class Parser {
 	
 	public boolean parseIntop(){
 		if(match(intopList()) != null){
-			verbosePrint("parseIntop()");
+			TempMain.verbosePrint("parseIntop()");
 			this.addLeafNextTok(this.currentToken.getLiteralT());
 			this.pTree.endChildren();
 			return true;
@@ -951,28 +956,22 @@ public class Parser {
 	 *                        |
 	 ------------------------*/
 	public void printError(Lexer.tokenType expected){
-		System.out.println("Error: Expected [" + expected + "] got [" + this.currentToken.getType()
-        + "] on line " + this.currentToken.lineNum);
+		if(TempMain.isVerboseOnLP){
+			System.out.println("Error: Expected [" + expected + "] got [" + this.currentToken.getType()
+			+ "] on line " + this.currentToken.lineNum);
+		}
 	}
 	public void printError(List<Lexer.tokenType> expectedList){
-		String error = "Error: Expected [";
-		for(int i = 0; i < expectedList.size(); i++){
-			error += expectedList.get(i);
-			if(i != expectedList.size()-1){
-				error += "], or [";
+		if(TempMain.isVerboseOnLP){
+			String error = "Error: Expected [";
+			for(int i = 0; i < expectedList.size(); i++){
+				error += expectedList.get(i);
+				if(i != expectedList.size()-1){
+					error += "], or [";
+				}
 			}
-		}
-		error += "] got [" + this.currentToken.getType() + "] on line " + this.currentToken.lineNum;
-		System.out.println(error);
-	}
-	
-	//---------------------
-	//Toggle Verbose Method
-	//---------------------
-	public static void verbosePrint(String parse){
-		boolean vIsOn = true;//placeholder for global var
-		if(vIsOn){
-			System.out.println(parse);
+			error += "] got [" + this.currentToken.getType() + "] on line " + this.currentToken.lineNum;
+			System.out.println(error);
 		}
 	}
 }

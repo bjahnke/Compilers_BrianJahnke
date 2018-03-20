@@ -5,14 +5,43 @@ import java.util.List;
 import java.util.Scanner;
 
 public class TempMain {
+	public static boolean isVerboseOnLP; 
+	
 	public static void main(String[] args) {
 		System.out.println("TempMain");
 		File testFile = getTestFile();
+		isVerboseOnLP = toggleVerbose();
 		String cString = scanFileReturnCharString(testFile);
 		List<Lexer.Token> tList = Lexer.lex(cString);
 		//send a list of valid trees here then call semantic analysis class?
 		//Might send to analysis after ast conversion or just have ast there to keep it all in one place. Dunno
 		System.out.println("\nHave nice day.");
+	}
+	
+	
+	/*------------------------|
+	 *                        |
+	 * Test File Load Methods |    only for lex and parse
+	 *                        |
+	 ------------------------*/
+	public static void verbosePrint(String parse){   
+		if(isVerboseOnLP){
+			System.out.println(parse);
+		}
+	}
+	
+	public static boolean toggleVerbose(){
+		Scanner reader = new Scanner(System.in);	
+		while(true){
+			System.out.println("Verbose output for Lexer/Parser? (y/n)");
+			String input = reader.next();
+			if(input.equals("y")){
+				return true;
+			}
+			if(input.equals("n")){
+				return false;
+			}
+		}
 	}
 	
 	/*------------------------|

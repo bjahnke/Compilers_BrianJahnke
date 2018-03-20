@@ -1,13 +1,7 @@
 import java.util.List;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.InputMismatchException;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.util.Scanner;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
-import java.lang.StringBuilder;
 
 public class Lexer {
 	public static String[] keywords = {"if", "while", "print"};
@@ -72,7 +66,6 @@ public class Lexer {
 	public static int matchWordList(String input, String[] wordList, int index) {
 		for(int x = 0; x < wordList.length; x++){
 			if(input.indexOf(wordList[x], index) == index) {
-				//System.out.println(wordList[x]);
 				return x;
 			}
 		}
@@ -118,7 +111,7 @@ public class Lexer {
 					else if(cChar == '\t'){
 						badToken = "\\t";
 					}
-					System.out.println("Error: Token \'" + badToken + "\' is illegal or not allowed in string");
+					TempMain.verbosePrint("Error: Token \'" + badToken + "\' is illegal or not allowed in string");
 					progErrorCount++;
 					errorInProg = true;
 					hasNoError = false;
@@ -220,16 +213,15 @@ public class Lexer {
 			}
 			else if(cChar == '\"') {
 				String strLit = getStringLit(input, i);
-				//System.out.println(strLit);
 				if(strLit.charAt(strLit.length()-1) == '\"'){
 					List<Token> strToks = verifyStringLit(strLit);
 					if(strToks != null){
 						Token startQuote = new Token(tokenType.DQUOTE, ""+input.charAt(i), lineNum);
 						progList.add(startQuote);
-						System.out.println(startQuote.toString());
+						TempMain.verbosePrint(startQuote.toString());
 						for(int ind = 0; ind < strToks.size(); ind++){
 							progList.add(strToks.get(ind));
-							System.out.println(strToks.get(ind).toString());
+							TempMain.verbosePrint(strToks.get(ind).toString());
 						}
 						i += strLit.length()-1;
 						newTok = new Token(tokenType.DQUOTE, ""+input.charAt(i), lineNum);
@@ -276,7 +268,7 @@ public class Lexer {
 			if(newTok != null){
 				result.add(newTok);
 				progList.add(newTok);
-				System.out.println(newTok.toString());
+				TempMain.verbosePrint(newTok.toString());
 				if(eop){
 					if(errorInProg){
 						System.out.println("Lex completed with " + progErrorCount + " error(s)\n"
@@ -293,12 +285,12 @@ public class Lexer {
 				}
 			}
 			else if(errorMsg != ""){
-				System.out.println(errorMsg);
+				TempMain.verbosePrint(errorMsg);
 				errorMsg = "";
 			}
 		}
 		if(warningMsg != ""){
-			System.out.println(warningMsg);
+			TempMain.verbosePrint(warningMsg);
 			warningMsg = "";
 		}
 		return result;
