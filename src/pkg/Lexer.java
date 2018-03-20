@@ -4,8 +4,6 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.regex.Pattern;
 
-import pkg.Parser.Tree;
-
 import java.util.regex.Matcher;
 
 public class Lexer {
@@ -19,7 +17,7 @@ public class Lexer {
 	public static List<String> errorList = new ArrayList<String>();
 	public static List<String> warningList = new ArrayList<String>();
 	public static List<Token> progTokList = new ArrayList<Token>();
-	public static List<Parser.Tree> parsedProgsList = new ArrayList<Parser.Tree>();
+	public static List<SyntaxTree> parsedProgsList = new ArrayList<SyntaxTree>();
 	public static int progNum = 1;   //compare with eop symbol number to see if there is a missing symbol.
 	public static int progErrorCount = 0;
 	public static boolean errorInProg = false;
@@ -259,7 +257,7 @@ public class Lexer {
 					}
 					else{
 						System.out.println("Lex completed successfully\n\nParsing Program " + progNum);
-						Parser.Tree validParse = Parser.parse(progTokList);
+						SyntaxTree validParse = Parser.parse(progTokList);
 						if(validParse != null){
 							parsedProgsList.add(validParse);
 						}

@@ -2,15 +2,13 @@ package pkg;
 import java.util.ArrayList;
 import java.util.List;
 
-import pkg.Parser.Tree;
-
 public class AST {
-	private static List<Parser.Tree> progsListCST;
-	private static List<Parser.Tree> progsListAST; 
+	private static List<SyntaxTree> progsListCST;
+	private static List<SyntaxTree> progsListAST; 
 	
 	public AST(){
 		progsListCST = Lexer.parsedProgsList;
-		progsListAST = new ArrayList<Parser.Tree>();
+		progsListAST = new ArrayList<SyntaxTree>();
 		generateAST();
 	}
 	
