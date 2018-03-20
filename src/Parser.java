@@ -967,7 +967,7 @@ public class Parser {
 	}
 	
 	//---------------------
-	//Toggle Verbose Methods
+	//Toggle Verbose Method
 	//---------------------
 	public static void verbosePrint(String parse){
 		boolean vIsOn = true;//placeholder for global var
