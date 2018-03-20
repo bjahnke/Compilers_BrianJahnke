@@ -188,7 +188,7 @@ public class Parser {
 	}
 	
 	public static void parse(List<Lexer.Token> tList){
-		System.out.println("parse()");
+		verbosePrint("parse()");
 		Parser p = new Parser(tList);
 		
 		if(p.parseProg()){
@@ -205,7 +205,7 @@ public class Parser {
 	
 	public boolean parseProg(){
 		if(match(progList()) != null){
-			System.out.println("parseProg()");
+			verbosePrint("parseProg()");
 			this.pTree.addBranchNode(prodType.BLOCK);
 			if(!parseBlock()){                                   //prod 1 
 				this.pTree.endChildren();
@@ -228,7 +228,7 @@ public class Parser {
 	}
 	
 	public boolean parseBlock(){
-		System.out.println("parseBlock()");
+		verbosePrint("parseBlock()");
 		if(match(blockList()) != null){                                //prod 2
 			this.addLeafNextTok(this.currentToken.getLiteralT());
 			this.pTree.addBranchNode(prodType.STATEMENT_LIST);
@@ -256,7 +256,7 @@ public class Parser {
 	}
 	
 	public boolean parseStmtList(){
-		System.out.println("parseStatementList()");
+		verbosePrint("parseStatementList()");
 		if(match(stmtList()) != null){                    //prod 3
 			this.pTree.addBranchNode(prodType.STATEMENT);
 			if(!parseStmt()){			
@@ -273,7 +273,7 @@ public class Parser {
 				return true;
 			}
 			else{
-				System.out.println("parseStatementList()");
+				verbosePrint("parseStatementList()");
 				this.pTree.endChildren();                   //prod 4 
 				return true; //because nullable;
 			}
@@ -285,7 +285,7 @@ public class Parser {
 	}
 	
 	public boolean parseStmt(){
-		System.out.println("parseStatement()");
+		verbosePrint("parseStatement()");
 		if(match(keywordList()) != null){      //print, if, or, while
 			if(this.currentToken.getLiteralT().equals("print")){       //prod 5
 				this.pTree.addBranchNode(prodType.PRINT_STATEMENT);     
@@ -342,7 +342,7 @@ public class Parser {
 	}
 	
 	public boolean parsePrint(){                                 //prod 11
-		System.out.println("parsePrint()");
+		verbosePrint("parsePrint()");
 		this.addLeafNextTok(this.currentToken.getLiteralT());
 		if(match(termList(Lexer.tokenType.LPAREN)) != null){
 			this.addLeafNextTok(this.currentToken.getLiteralT());
@@ -375,7 +375,7 @@ public class Parser {
 	
 	public boolean parseAssign(){                      //prod 12
 		if(match(idList()) != null){
-			System.out.println("parseAssign()");
+			verbosePrint("parseAssign()");
 			this.pTree.addBranchNode(prodType.ID);
 			if(!parseId()){
 				this.pTree.endChildren();
@@ -410,7 +410,7 @@ public class Parser {
 	
 	public boolean parseVarDecl(){                    //prod 13
 		if(match(typeList()) != null){
-			System.out.println("parseVarDecl()");
+			verbosePrint("parseVarDecl()");
 			this.pTree.addBranchNode(prodType.TYPE);
 			if(!parseType()){
 				this.pTree.endChildren();
@@ -437,7 +437,7 @@ public class Parser {
 	}
 	
 	public boolean parseWhile(){                      //prod 14
-		System.out.println("parseWhile()");
+		verbosePrint("parseWhile()");
 		this.addLeafNextTok(this.currentToken.getLiteralT());
 		if(match(boolEList()) != null){
 			this.pTree.addBranchNode(prodType.BOOLEAN_EXPR);
@@ -467,7 +467,7 @@ public class Parser {
 	}
 	
 	public boolean parseIf(){                             //prod 15
-		System.out.println("parseIf()");
+		verbosePrint("parseIf()");
 		this.addLeafNextTok(this.currentToken.getLiteralT());
 		if(match(boolEList()) != null){
 			this.pTree.addBranchNode(prodType.BOOLEAN_EXPR);
@@ -496,7 +496,7 @@ public class Parser {
 	}
 	
 	public boolean parseExpr(){                       
-		System.out.println("parseExpr()");
+		verbosePrint("parseExpr()");
 		if(match(intEList()) != null){                       //prod 16
 			this.pTree.addBranchNode(prodType.INT_EXPR);
 			if(!parseIntExpr()){
@@ -540,7 +540,7 @@ public class Parser {
 	}
 	
 	public boolean parseIntExpr(){                     //prod 20/21
-		System.out.println("parseIntExpr()");
+		verbosePrint("parseIntExpr()");
 		if(match(digitList()) != null){
 			this.pTree.addBranchNode(prodType.DIGIT);
 			if(!parseDigit()){
@@ -579,7 +579,7 @@ public class Parser {
 	}
 	
 	public boolean parseStrExpr(){                         //prod 22
-		System.out.println("parseStrExpr()");
+		verbosePrint("parseStrExpr()");
 		if(match(strEList()) != null){
 			this.addLeafNextTok(this.currentToken.getLiteralT());
 			this.pTree.addBranchNode(prodType.CHAR_LIST);
@@ -607,7 +607,7 @@ public class Parser {
 	}
 	
 	public boolean parseBoolExpr(){
-		System.out.println("parseBoolExpr()");
+		verbosePrint("parseBoolExpr()");
 		if(match(termList(Lexer.tokenType.LPAREN)) != null){    //prod 23
 			this.addLeafNextTok(this.currentToken.getLiteralT());
 			if(match(eList()) != null){
@@ -670,7 +670,7 @@ public class Parser {
 	
 	public boolean parseId(){
 		if(match(idList()) != null){              //distinction between char and id is made in lexer
-			System.out.println("parseId()");
+			verbosePrint("parseId()");
 			this.addLeafNextTok(this.currentToken.getLiteralT());
 			this.pTree.endChildren();
 			return true;
@@ -682,7 +682,7 @@ public class Parser {
 	}
 	
 	public boolean parseCharList(){
-		System.out.println("parseCharList()");
+		verbosePrint("parseCharList()");
 		if(match(cLList()) != null){
 			if(match(cLList()) == Lexer.tokenType.CHAR){
 				this.pTree.addBranchNode(prodType.CHAR);
@@ -720,7 +720,7 @@ public class Parser {
 
 	public boolean parseType(){
 		if(match(typeList()) != null){
-			System.out.println("parseType()");
+			verbosePrint("parseType()");
 			this.addLeafNextTok(this.currentToken.getLiteralT());
 			this.pTree.endChildren();
 			return true;
@@ -733,7 +733,7 @@ public class Parser {
 	
 	public boolean parseChar(){
 		if(match(charList()) != null){
-			System.out.println("parseChar()");
+			verbosePrint("parseChar()");
 			this.addLeafNextTok(this.currentToken.getLiteralT());
 			this.pTree.endChildren();
 			return true;
@@ -745,7 +745,7 @@ public class Parser {
 	}
 	public boolean parseSpace(){
 		if(match(spaceList()) != null){
-			System.out.println("parseSpace()");
+			verbosePrint("parseSpace()");
 			this.addLeafNextTok(this.currentToken.getLiteralT());
 			this.pTree.endChildren();
 			return true;
@@ -758,7 +758,7 @@ public class Parser {
 	
 	public boolean parseDigit(){
 		if(match(digitList()) != null){
-			System.out.println("parseDigit()");
+			verbosePrint("parseDigit()");
 			this.addLeafNextTok(this.currentToken.getLiteralT());
 			this.pTree.endChildren();
 			return true;
@@ -771,7 +771,7 @@ public class Parser {
 	
 	public boolean parseBoolop(){
 		if(match(bOpList()) != null){
-			System.out.println("parseBoolop()");
+			verbosePrint("parseBoolop()");
 			this.addLeafNextTok(this.currentToken.getLiteralT());
 			this.pTree.endChildren();
 			return true;
@@ -784,7 +784,7 @@ public class Parser {
 	
 	public boolean parseBoolval(){
 		if(match(bValList()) != null){
-			System.out.println("parseBoolval()");
+			verbosePrint("parseBoolval()");
 			this.addLeafNextTok(this.currentToken.getLiteralT());
 			this.pTree.endChildren();
 			return true;
@@ -797,7 +797,7 @@ public class Parser {
 	
 	public boolean parseIntop(){
 		if(match(intopList()) != null){
-			System.out.println("parseIntop()");
+			verbosePrint("parseIntop()");
 			this.addLeafNextTok(this.currentToken.getLiteralT());
 			this.pTree.endChildren();
 			return true;
@@ -964,6 +964,16 @@ public class Parser {
 		}
 		error += "] got [" + this.currentToken.getType() + "] on line " + this.currentToken.lineNum;
 		System.out.println(error);
+	}
+	
+	//---------------------
+	//Toggle Verbose Methods
+	//---------------------
+	public static void verbosePrint(String parse){
+		boolean vIsOn = true;//placeholder for global var
+		if(vIsOn){
+			System.out.println(parse);
+		}
 	}
 }
 

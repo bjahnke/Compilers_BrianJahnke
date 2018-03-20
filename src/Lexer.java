@@ -403,7 +403,5 @@ public class Lexer {
 		String cString = ScanFileReturnCharString(testFile);
 		List<Token> tList = lex(cString);
 		System.out.println("\nHave nice day.");
-		
-		
 	}
 }
