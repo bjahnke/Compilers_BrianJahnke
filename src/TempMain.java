@@ -36,9 +36,11 @@ public class TempMain {
 			System.out.println("Verbose output for Lexer/Parser? (y/n)");
 			String input = reader.next();
 			if(input.equals("y")){
+				reader.close();
 				return true;
 			}
 			if(input.equals("n")){
+				reader.close();
 				return false;
 			}
 		}
