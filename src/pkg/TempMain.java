@@ -1,3 +1,5 @@
+package pkg;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.InputMismatchException;
@@ -13,8 +15,7 @@ public class TempMain {
 		isVerboseOnLP = toggleVerbose();
 		String cString = scanFileReturnCharString(testFile);
 		List<Lexer.Token> tList = Lexer.lex(cString);
-		//send a list of valid trees here then call semantic analysis class?
-		//Might send to analysis after ast conversion or just have ast there to keep it all in one place. Dunno
+		
 		System.out.println("\nHave nice day.");
 	}
 	

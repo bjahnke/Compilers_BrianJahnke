@@ -1,6 +1,11 @@
+package pkg;
+import static pkg.TokenType.*;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.regex.Pattern;
+
+import pkg.Parser.Tree;
+
 import java.util.regex.Matcher;
 
 public class Lexer {
@@ -13,7 +18,8 @@ public class Lexer {
 	public static Pattern digitP = Pattern.compile("[0-9]");
 	public static List<String> errorList = new ArrayList<String>();
 	public static List<String> warningList = new ArrayList<String>();
-	public static List<Token> progList = new ArrayList<Token>();
+	public static List<Token> progTokList = new ArrayList<Token>();
+	public static List<Parser.Tree> parsedProgsList = new ArrayList<Parser.Tree>();
 	public static int progNum = 1;   //compare with eop symbol number to see if there is a missing symbol.
 	public static int progErrorCount = 0;
 	public static boolean errorInProg = false;
@@ -21,32 +27,12 @@ public class Lexer {
 	//Pattern keyWordP = Pattern.compile("[a-z][a-z]+");
 	//Pattern 
 	
-	public static enum tokenType {
-		EOP,
-		DIGIT,
-		CHAR,
-		ID,
-		SPACE,
-		LCBRACE,
-		RCBRACE,
-		LPAREN,
-		RPAREN,
-		ASSIGN,
-		DQUOTE,
-		INTOP,
-		BOOLVAL,
-		BOOLOP,
-		TYPE,
-		STRINGLITERAL,
-	    KEYWORD;
-	}
-	
 	public static class Token {
-		public final tokenType t;
+		public final TokenType t;
 		public final String c;
 		public final int lineNum;
 		
-		public Token(tokenType t, String c, int lineNum) {
+		public Token(TokenType t, String c, int lineNum) {
 			this.t = t;
 			this.c = c;
 			this.lineNum = lineNum;
@@ -54,7 +40,7 @@ public class Lexer {
 		@Override public String toString() {
 			return this.c + " --> " + this.t + "\tln: " + this.lineNum;
 		}
-		public tokenType getType(){
+		public TokenType getType(){
 			return this.t;
 		}
 		public String getLiteralT(){
@@ -95,11 +81,11 @@ public class Lexer {
 			char cChar = strLit.charAt(i);
 			Matcher charM = charP.matcher(String.valueOf(cChar));
 			if(charM.matches()){
-				newTok = new Token(tokenType.CHAR, ""+cChar, lineNum);
+				newTok = new Token(CHAR, ""+cChar, lineNum);
 				strTokens.add(newTok);
 			}
 			else if(cChar == ' '){
-				newTok = new Token(tokenType.SPACE, "\\s", lineNum);
+				newTok = new Token(SPACE, "\\s", lineNum);
 				strTokens.add(newTok);
 			}
 			else{
@@ -166,65 +152,62 @@ public class Lexer {
 				if(i != input.length()-1)
 				{
 					System.out.println("Lexing Program " + progNum);
-					progList.clear();
+					progTokList.clear();
 					eop = false;
 				}
 			}
 			if(matchWordList(input, keywords, i) > -1) {   
 				int ind = matchWordList(input, keywords, i);
-				newTok = new Token(tokenType.KEYWORD, keywords[ind], lineNum);
+				newTok = new Token(KEYWORD, keywords[ind], lineNum);
 				i += keywords[ind].length()-1;
 			}
 			else if(matchWordList(input, types, i) > -1) {
 				int ind = matchWordList(input, types, i);
-				newTok = new Token(tokenType.TYPE, types[ind], lineNum); 
+				newTok = new Token(TYPE, types[ind], lineNum); 
 				i += types[ind].length()-1;
 			}
 			else if(matchWordList(input, boolval, i) > -1) {
 				int ind = matchWordList(input, boolval, i);
-				newTok = new Token(tokenType.BOOLVAL, boolval[ind], lineNum);
+				newTok = new Token(BOOLVAL, boolval[ind], lineNum);
 				i += boolval[ind].length()-1;
 			}
 			else if(matchWordList(input, boolop, i) > -1) {
 				int ind = matchWordList(input, boolop, i);
-				newTok = new Token(tokenType.BOOLOP, boolop[ind], lineNum);
+				newTok = new Token(BOOLOP, boolop[ind], lineNum);
 				i += boolop[ind].length()-1;
 			}
 			else if(cChar == '(') {
-				newTok = new Token(tokenType.LPAREN, "(", lineNum);
+				newTok = new Token(LPAREN, "(", lineNum);
 			}
 			else if(cChar == ')') {
-				newTok = new Token(tokenType.RPAREN, ")", lineNum);
+				newTok = new Token(RPAREN, ")", lineNum);
 			}
 			else if(cChar == '{') {
-				newTok = new Token(tokenType.LCBRACE, "{", lineNum);
+				newTok = new Token(LCBRACE, "{", lineNum);
 			}
 			else if(cChar == '}') {
-				newTok = new Token(tokenType.RCBRACE, "}", lineNum);
+				newTok = new Token(RCBRACE, "}", lineNum);
 			}
-			//else if(cChar == ' ') {
-				//newTok = new Token(tokenType.SPACE, "\\s", lineNum);
-			//}
 			else if(cChar == '=') {
-				newTok = new Token(tokenType.ASSIGN, "=", lineNum);
+				newTok = new Token(ASSIGN, "=", lineNum);
 			}
 			else if(cChar == '+') {
-				newTok = new Token(tokenType.INTOP, "+", lineNum);
+				newTok = new Token(INTOP, "+", lineNum);
 			}
 			else if(cChar == '\"') {
 				String strLit = getStringLit(input, i);
 				if(strLit.charAt(strLit.length()-1) == '\"'){
 					List<Token> strToks = verifyStringLit(strLit);
 					if(strToks != null){
-						Token startQuote = new Token(tokenType.DQUOTE, ""+input.charAt(i), lineNum);
-						progList.add(startQuote);
+						Token startQuote = new Token(DQUOTE, ""+input.charAt(i), lineNum);
+						progTokList.add(startQuote);
 						TempMain.verbosePrint(startQuote.toString());
 						for(int ind = 0; ind < strToks.size(); ind++){
-							progList.add(strToks.get(ind));
+							progTokList.add(strToks.get(ind));
 							TempMain.verbosePrint(strToks.get(ind).toString());
 						}
 						i += strLit.length()-1;
-						newTok = new Token(tokenType.DQUOTE, ""+input.charAt(i), lineNum);
+						newTok = new Token(DQUOTE, ""+input.charAt(i), lineNum);
 					}
 					else{
 						i += strLit.length()-1;
@@ -239,16 +222,14 @@ public class Lexer {
 				}
 			}
 			else if(cChar == '$') {
-				newTok = new Token(tokenType.EOP, "$", lineNum);
-				//progList.add((String)input.subSequence(0, i));
-				//eopNum++;
+				newTok = new Token(EOP, "$", lineNum);
 				eop = true;
 			}
 			else if(digitM.matches()) {
-				newTok = new Token(tokenType.DIGIT, String.valueOf(cChar), lineNum);
+				newTok = new Token(DIGIT, String.valueOf(cChar), lineNum);
 			}
 			else if(charM.matches()) {
-				newTok = new Token(tokenType.ID, String.valueOf(cChar), lineNum);
+				newTok = new Token(ID, String.valueOf(cChar), lineNum);
 			}
 			else if(cChar == '\n') {
 				lineNum++;
@@ -259,15 +240,15 @@ public class Lexer {
 					progErrorCount++;
 					errorList.add(errorMsg);
 			}
-			if(i == input.length()-1  && result.get(result.size()-1).getType() != tokenType.EOP) {
+			if(i == input.length()-1  && result.get(result.size()-1).getType() != EOP) {
 				warningMsg = "Warning: $ at file end not present. Added Automatically to prevent failure.";
-				newTok = new Token(tokenType.EOP, "$", lineNum); 
+				newTok = new Token(EOP, "$", lineNum); 
 				eop = true;
 			}
 			
 			if(newTok != null){
 				result.add(newTok);
-				progList.add(newTok);
+				progTokList.add(newTok);
 				TempMain.verbosePrint(newTok.toString());
 				if(eop){
 					if(errorInProg){
@@ -278,8 +259,11 @@ public class Lexer {
 					}
 					else{
 						System.out.println("Lex completed successfully\n\nParsing Program " + progNum);
-						Parser.parse(progList);
-						progList.clear();
+						Parser.Tree validParse = Parser.parse(progTokList);
+						if(validParse != null){
+							parsedProgsList.add(validParse);
+						}
+						progTokList.clear();
 					}
 					progNum++;
 				}
