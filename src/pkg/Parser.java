@@ -48,6 +48,7 @@ public class Parser {
 				p.pTree.printTree3("");
 				System.out.println("\n");
 			}
+			p.pTree.initAndGenAST();
 			return p.pTree;
 		}
 		else{

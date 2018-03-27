@@ -1,5 +1,6 @@
 package pkg;
-
+//The 'p' present in some enums stands for production, differentiates from TokenType enum of the same name
+//just in case I happen to use them in the same file.
 public enum ProdType {
 	PROGRAM,
 	BLOCK,

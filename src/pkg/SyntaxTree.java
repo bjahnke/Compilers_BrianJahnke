@@ -1,14 +1,30 @@
 package pkg;
 import static pkg.ProdType.*;
+import static pkg.TokenType.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class SyntaxTree<N>{
 	//Source: https://stackoverflow.com/questions/3522454/java-tree-data-structure
 	//Helped with making a generic class tree
-	private Node<N> root;
-	private Node<N> currentNode;
+	protected Node<N> root;
+	protected Node<N> currentNode;
+	protected SyntaxTree<N> ASTree;
+	private SyntaxTree<N> ast;
+	public static List<ProdType> branchSet = Arrays.asList(BLOCK, PRINT_STATEMENT, ASSIGNMENT_STATEMENT, VAR_DECL, WHILE_STATEMENT, IF_STATEMENT);
+	//^Important Stuff
+	public static List<ProdType> termSet = Arrays.asList(DIGITp, IDp, TYPEp); 
+	//^Leaf Nodes only contain the token data not their token type, but since the CST is correct
+	//I can just check for Terminals I want by looking at their parent.
+
 	
+	public SyntaxTree(){
+		root = new Node<N>();
+		root.data = null;
+		root.children = new ArrayList<Node<N>>();
+		currentNode = root;
+	}
 	public SyntaxTree(N rootData){
 		root = new Node<N>();
 		root.data = rootData;
@@ -17,9 +33,9 @@ public class SyntaxTree<N>{
 	}
 	
 	public static class Node<N>{
-		private N data;
-		private Node<N> parent;
-		private List<Node<N>> children;
+		protected N data;
+		protected Node<N> parent;
+		protected List<Node<N>> children;
 		
 		public Node(){
 			this.data = null;
@@ -33,12 +49,30 @@ public class SyntaxTree<N>{
 			this.children = new ArrayList<Node<N>>();
 		}
 		
+		public String getNodeInfo(){
+			return "" + this.data + ", " + this.parent + ", " + this.childrenToString();
+			
+		}
+		public List<Node<N>> getChildren(){
+			return this.children;
+		}
+		
+		public N getData(){
+			return this.data;
+		}
+		
+		public Node<N> getParent(){
+			return this.parent;
+		}
+		
 		public void setChild(Node<N> node){
 			this.children.add(node);
 		}
+		
 		public void assignParent(Node<N> par){
 			this.parent = par;
 		}
+		
 		public String toString(){
 			if((this.children != null && !this.children.isEmpty()) 
 			|| this.data == STATEMENT_LIST
@@ -57,9 +91,6 @@ public class SyntaxTree<N>{
 				}
 				return childrenStr + ")";
 			}
-			//else if(this.data == prodType.STATEMENT_LIST || this.data == prodType.CHAR_LIST){  //to show nulls not really needed
-			//	return "(e)";
-			//}
 			return "";
 		}
 		public boolean hasChildren(){
@@ -69,26 +100,72 @@ public class SyntaxTree<N>{
 			return false;
 		}
 	}
+	public Node<N> getCurrentNode(){
+		return this.currentNode;
+	}
+	
 	public void setCurrentNode(Node<N> node){
 		this.currentNode = node;
 	}
+	
 	@SuppressWarnings("unchecked")
 	public void addBranchNode(ProdType pEnum){
-		Node n = new Node<N>((N)pEnum);
+		Node<N> n = new Node<N>((N)pEnum);
 		n.parent = this.currentNode;
 		this.currentNode.children.add(n);
 		this.currentNode = n;
 	}
+	
 	@SuppressWarnings("unchecked")
 	public void addLeafNode(String term){
-		Node n = new Node<N>((N)term);
+		Node<N> n = new Node<N>((N)term);
 		n.parent = this.currentNode;
 		this.currentNode.children.add(n);
 	}
+	
 	public void endChildren(){
 		this.currentNode = this.currentNode.parent;
 	}
 	
+	public void initAndGenAST(){
+		this.ast = new SyntaxTree((ProdType)this.currentNode.data);
+		this.toAST();
+		this.ast.printTree3("");
+	}
+	
+	public void toAST(){
+		if(this.currentNode.hasChildren()){
+			if(branchSet.contains((ProdType)this.currentNode.data)){
+				this.ast.addBranchNode((ProdType)this.currentNode.data);
+				this.toASTchildren();
+				this.ast.endChildren();
+			}
+			//if the production leads to a term we want, make an ast leaf node from the prod's child
+			else if(termSet.contains(this.currentNode.data)){
+				this.ast.addLeafNode((String)this.currentNode.children.get(0).data);  
+			}
+			else{
+				this.toASTchildren();
+			}
+		}
+		else{
+			this.endChildren();
+		}
+			
+	}
+	
+	//helper function, applies toAST() to each child of the current node.
+	public void toASTchildren(){
+		for(Node<N> n : this.currentNode.children){
+			this.currentNode = n;
+			this.toAST();
+		}
+	}
+	/*-----------------|
+	 *                 |
+	 * Print Tree      |
+	 *                 |
+	 -----------------*/
 	public void printTree(){
 		List<Node<N>> root = new ArrayList<Node<N>>();
 		root.add(this.currentNode);
