@@ -128,14 +128,18 @@ public class SyntaxTree<N>{
 	}
 	
 	public void initAndGenAST(){
+		this.currentNode = this.currentNode.children.get(0);
 		this.ast = new SyntaxTree((ProdType)this.currentNode.data);
 		this.toAST();
+		System.out.println("AST:\n");
 		this.ast.printTree3("");
+		System.out.println("\n");
 	}
 	
 	public void toAST(){
+		String strLit = "";
 		if(this.currentNode.hasChildren()){
-			if(branchSet.contains((ProdType)this.currentNode.data)){
+			if(branchSet.contains(this.currentNode.data) && !this.currentNode.parent.equals(this.root)){
 				this.ast.addBranchNode((ProdType)this.currentNode.data);
 				this.toASTchildren();
 				this.ast.endChildren();
@@ -144,14 +148,17 @@ public class SyntaxTree<N>{
 			else if(termSet.contains(this.currentNode.data)){
 				this.ast.addLeafNode((String)this.currentNode.children.get(0).data);  
 			}
+			else if(this.currentNode.data == STRING_EXPR){
+				strLit = this.getStringLit(strLit);
+				this.ast.addLeafNode(strLit);
+			}
 			else{
 				this.toASTchildren();
 			}
 		}
 		else{
 			this.endChildren();
-		}
-			
+		}	
 	}
 	
 	//helper function, applies toAST() to each child of the current node.
@@ -160,6 +167,25 @@ public class SyntaxTree<N>{
 			this.currentNode = n;
 			this.toAST();
 		}
+	}
+	
+	//helper function, called when STR_EXPR is found, traverses cst under the expr. Concatenates and returns
+	//all chars and spaces found.
+	public String getStringLit(String str){
+		for(Node<N> n : this.currentNode.children){
+			if(n.data == SPACEp){
+				str = " ";
+			}
+			else if(n.data == CHARp){
+				str = (String)n.children.get(0).data;
+			}
+			else if(n.data == CHAR_LIST && n.hasChildren()){
+				this.currentNode = n;
+				str += getStringLit(str);
+				this.endChildren();
+			}
+		}
+		return str;
 	}
 	/*-----------------|
 	 *                 |
