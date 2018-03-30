@@ -19,6 +19,7 @@ public class SyntaxTree<N>{
 	public static List<ProdType> termSet = Arrays.asList(DIGITp, IDp, TYPEp); 
 	//^Leaf Nodes only contain the token data not their token type, but since the CST is correct
 	//I can just check for Terminals I want by looking at their parent.
+	//^this comment is no longer true, but for now I will keep this code in use as it is still functional
 
 	
 	public SyntaxTree(){
@@ -85,7 +86,7 @@ public class SyntaxTree<N>{
 			}
 			else{
 				Token tok = (Token)this.data;
-				return " [" + tok.getLiteralT() + "] ";
+				return " [" + tok.getLit() + "] ";
 			}
 		}
 		public String childrenToString(){
@@ -132,6 +133,12 @@ public class SyntaxTree<N>{
 		this.currentNode = this.currentNode.parent;
 	}
 	
+	
+	/*-----------------|
+	 *                 |
+	 * AST Generator   |
+	 *                 |
+	 -----------------*/
 	public void initAndGenAST(){
 		this.currentNode = this.currentNode.children.get(0);
 		this.ast = new SyntaxTree((ProdType)this.currentNode.data);
@@ -140,9 +147,9 @@ public class SyntaxTree<N>{
 		this.ast.printTree3("");
 		System.out.println("\n");
 	}
-	
+
 	public void toAST(){
-		String strLit = "";
+		Token strLitTok = new Token();
 		if(this.currentNode.hasChildren()){
 			if(branchSet.contains(this.currentNode.data) && !this.currentNode.parent.equals(this.root)){
 				this.ast.addBranchNode((ProdType)this.currentNode.data);
@@ -154,8 +161,7 @@ public class SyntaxTree<N>{
 				this.ast.addLeafNode((Token)this.currentNode.children.get(0).data);  
 			}
 			else if(this.currentNode.data == STRING_EXPR){
-				strLit = this.getStringLit(strLit);
-				Token strLitTok = new Token(STRINGLITERAL, strLit, 0); //figure out how to get lin num here
+				strLitTok = this.getStringLit(strLitTok);
 				this.ast.addLeafNode(strLitTok);
 			}
 			else{
@@ -176,23 +182,25 @@ public class SyntaxTree<N>{
 	}
 	
 	//helper function, called when STR_EXPR is found, traverses cst under the expr. Concatenates and returns
-	//all chars and spaces found.
-	public String getStringLit(String str){
+	//all chars and spaces found into a single token.
+	public Token getStringLit(Token strTok){
 		for(Node<N> n : this.currentNode.children){
+			Token childTok = (Token)n.children.get(0).data;
 			if(n.data == SPACEp){
-				str = " ";
+				strTok.setLit(strTok.getLit()+" ");
+				strTok.setLineNum(childTok.getLineNum());
 			}
 			else if(n.data == CHARp){
-				Token childTok = (Token)n.children.get(0).data;
-				str = childTok.getLiteralT();
+				strTok.setLit(strTok.getLit()+childTok.getLit());
+				strTok.setLineNum(childTok.getLineNum());
 			}
 			else if(n.data == CHAR_LIST && n.hasChildren()){
 				this.currentNode = n;
-				str += getStringLit(str);
+				strTok.setLit(strTok.getLit() + this.getStringLit(strTok));
 				this.endChildren();
 			}
 		}
-		return str;
+		return strTok;
 	}
 	/*-----------------|
 	 *                 |

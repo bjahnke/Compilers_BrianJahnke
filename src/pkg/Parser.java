@@ -144,21 +144,21 @@ public class Parser {
 	public boolean parseStmt(){
 		TempMain.verbosePrint("parseStatement()");
 		if(match(keywordList()) != null){      //print, if, or, while
-			if(this.currentToken.getLiteralT().equals("print")){       //prod 5
+			if(this.currentToken.getLit().equals("print")){       //prod 5
 				this.pTree.addBranchNode(PRINT_STATEMENT);     
 				if(!parsePrint()){
 					this.pTree.endChildren();
 					return false;
 				}
 			}
-			else if(this.currentToken.getLiteralT().equals("if")){     //prod 9
+			else if(this.currentToken.getLit().equals("if")){     //prod 9
 				this.pTree.addBranchNode(IF_STATEMENT);
 				if(!parseIf()){
 					this.pTree.endChildren();
 					return false;
 				}
 			}
-			else if(this.currentToken.getLiteralT().equals("while")){  //prod 8
+			else if(this.currentToken.getLit().equals("while")){  //prod 8
 				this.pTree.addBranchNode(WHILE_STATEMENT);
 				if(!parseWhile()){
 					this.pTree.endChildren();
