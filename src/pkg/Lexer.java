@@ -22,29 +22,8 @@ public class Lexer {
 	public static int progErrorCount = 0;
 	public static boolean errorInProg = false;
 	public static int lineNum = 1;
-	//Pattern keyWordP = Pattern.compile("[a-z][a-z]+");
-	//Pattern 
 	
-	public static class Token {
-		public final TokenType t;
-		public final String c;
-		public final int lineNum;
-		
-		public Token(TokenType t, String c, int lineNum) {
-			this.t = t;
-			this.c = c;
-			this.lineNum = lineNum;
-		}
-		@Override public String toString() {
-			return this.c + " --> " + this.t + "\tln: " + this.lineNum;
-		}
-		public TokenType getType(){
-			return this.t;
-		}
-		public String getLiteralT(){
-			return this.c;
-		}
-	}
+
 	//check reserved words as substring in charstring, returns the index of wordlist where the element matches the at
 	//index, "index", of the input String
 	public static int matchWordList(String input, String[] wordList, int index) {

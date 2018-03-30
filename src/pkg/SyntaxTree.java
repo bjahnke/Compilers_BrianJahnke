@@ -12,8 +12,10 @@ public class SyntaxTree<N>{
 	protected Node<N> currentNode;
 	protected SyntaxTree<N> ASTree;
 	private SyntaxTree<N> ast;
+	
+	//Important Stuff
 	public static List<ProdType> branchSet = Arrays.asList(BLOCK, PRINT_STATEMENT, ASSIGNMENT_STATEMENT, VAR_DECL, WHILE_STATEMENT, IF_STATEMENT);
-	//^Important Stuff
+	
 	public static List<ProdType> termSet = Arrays.asList(DIGITp, IDp, TYPEp); 
 	//^Leaf Nodes only contain the token data not their token type, but since the CST is correct
 	//I can just check for Terminals I want by looking at their parent.
@@ -74,13 +76,16 @@ public class SyntaxTree<N>{
 		}
 		
 		public String toString(){
-			if((this.children != null && !this.children.isEmpty()) 
+			if(this.hasChildren() 
 			|| this.data == STATEMENT_LIST
-			|| this.data == CHAR_LIST){
+			|| this.data == CHAR_LIST
+			|| this.data == BLOCK                  //may have no children in ast, Ex: {} since these tokens are not included
+			|| this.data == PRINT_STATEMENT){      //may have no children in ast, Ex: "" since we are dropping the quotes
 				return " <" + this.data + "> ";
 			}
 			else{
-				return " [" + this.data + "] ";
+				Token tok = (Token)this.data;
+				return " [" + tok.getLiteralT() + "] ";
 			}
 		}
 		public String childrenToString(){
@@ -117,7 +122,7 @@ public class SyntaxTree<N>{
 	}
 	
 	@SuppressWarnings("unchecked")
-	public void addLeafNode(String term){
+	public void addLeafNode(Token term){
 		Node<N> n = new Node<N>((N)term);
 		n.parent = this.currentNode;
 		this.currentNode.children.add(n);
@@ -146,11 +151,12 @@ public class SyntaxTree<N>{
 			}
 			//if the production leads to a term we want, make an ast leaf node from the prod's child
 			else if(termSet.contains(this.currentNode.data)){
-				this.ast.addLeafNode((String)this.currentNode.children.get(0).data);  
+				this.ast.addLeafNode((Token)this.currentNode.children.get(0).data);  
 			}
 			else if(this.currentNode.data == STRING_EXPR){
 				strLit = this.getStringLit(strLit);
-				this.ast.addLeafNode(strLit);
+				Token strLitTok = new Token(STRINGLITERAL, strLit, 0); //figure out how to get lin num here
+				this.ast.addLeafNode(strLitTok);
 			}
 			else{
 				this.toASTchildren();
@@ -177,7 +183,8 @@ public class SyntaxTree<N>{
 				str = " ";
 			}
 			else if(n.data == CHARp){
-				str = (String)n.children.get(0).data;
+				Token childTok = (Token)n.children.get(0).data;
+				str = childTok.getLiteralT();
 			}
 			else if(n.data == CHAR_LIST && n.hasChildren()){
 				this.currentNode = n;
