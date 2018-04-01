@@ -1,0 +1,13 @@
+package pkg;
+
+public enum AbstractProd {
+	ADD,
+	COMPARE_EQ,
+	COMPARE_NEQ,
+	INT_DECL,
+	STRING_DECL,
+	BOOLEAN_DECL,
+	INT_ASSIGN,
+	STRING_ASSIGN,
+	BOOLEAN_ASSIGN;
+}

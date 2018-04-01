@@ -1,15 +1,15 @@
 package pkg;
-import static pkg.VarType.*;
+import static pkg.Type.*;
 public class Var {
 	private String id;
 	private String val;
-	private VarType type;
+	private Type type;
 	private boolean isUsed;
 	private boolean isInit;
 	
 	public Var(){};
 	
-	public Var(VarType t, String d){
+	public Var(Type t, String d){
 		this.type = t;
 		this.id = d;
 		this.val = "";
@@ -28,5 +28,13 @@ public class Var {
 	public void setValue(String value){
 		this.val = value;
 		this.varIsInit();
+	}
+	
+	public Type getType(){
+		return this.type;
+	}
+	
+	public String getID(){
+		return this.id;
 	}
 }

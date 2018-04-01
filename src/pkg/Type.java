@@ -1,6 +1,6 @@
 package pkg;
 
-public enum VarType {
+public enum Type {
 	INT,
 	STRING,
 	BOOLEAN;

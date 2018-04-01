@@ -49,6 +49,8 @@ public class Parser {
 				System.out.println("\n");
 			}
 			p.pTree.initAndGenAST();
+			SymbolTable sT = new SymbolTable(p.pTree.ast.root.data, p.pTree.ast);
+			sT.buildSymbolTable();
 			return p.pTree;
 		}
 		else{
@@ -70,7 +72,6 @@ public class Parser {
 			}
 			if(match(termList(EOP)) != null){    //prod 1
 				this.addLeafNextTok(this.currentToken);
-				//this.pTree.endChildren();
 				return true;
 			}
 			else{

@@ -1,6 +1,7 @@
 package pkg;
 import static pkg.ProdType.*;
 import static pkg.TokenType.*;
+import static pkg.AbstractProd.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -10,13 +11,12 @@ public class SyntaxTree<N>{
 	//Helped with making a generic class tree
 	protected Node<N> root;
 	protected Node<N> currentNode;
-	protected SyntaxTree<N> ASTree;
-	private SyntaxTree<N> ast;
+	protected SyntaxTree<N> ast;
 	
 	//Important Stuff
 	public static List<ProdType> branchSet = Arrays.asList(BLOCK, PRINT_STATEMENT, ASSIGNMENT_STATEMENT, VAR_DECL, WHILE_STATEMENT, IF_STATEMENT);
 	
-	public static List<ProdType> termSet = Arrays.asList(DIGITp, IDp, TYPEp); 
+	public static List<ProdType> termSet = Arrays.asList(DIGITp, IDp, TYPEp, BOOLVALp); 
 	//^Leaf Nodes only contain the token data not their token type, but since the CST is correct
 	//I can just check for Terminals I want by looking at their parent.
 	//^this comment is no longer true, but for now I will keep this code in use as it is still functional
@@ -89,6 +89,7 @@ public class SyntaxTree<N>{
 				return " [" + tok.getLit() + "] ";
 			}
 		}
+		
 		public String childrenToString(){
 			if(this.hasChildren()){
 				String childrenStr = "(";
@@ -99,6 +100,7 @@ public class SyntaxTree<N>{
 			}
 			return "";
 		}
+		
 		public boolean hasChildren(){
 			if(this.children != null && !this.children.isEmpty()){
 				return true;
@@ -106,6 +108,7 @@ public class SyntaxTree<N>{
 			return false;
 		}
 	}
+	
 	public Node<N> getCurrentNode(){
 		return this.currentNode;
 	}
@@ -117,6 +120,13 @@ public class SyntaxTree<N>{
 	@SuppressWarnings("unchecked")
 	public void addBranchNode(ProdType pEnum){
 		Node<N> n = new Node<N>((N)pEnum);
+		n.parent = this.currentNode;
+		this.currentNode.children.add(n);
+		this.currentNode = n;
+	}
+	
+	public void addBranchNode(N genType){
+		Node<N> n = new Node<N>(genType);
 		n.parent = this.currentNode;
 		this.currentNode.children.add(n);
 		this.currentNode = n;
@@ -145,6 +155,7 @@ public class SyntaxTree<N>{
 		this.toAST();
 		System.out.println("AST:\n");
 		this.ast.printTree3("");
+		this.ast.currentNode = this.ast.root;
 		System.out.println("\n");
 	}
 
@@ -164,6 +175,27 @@ public class SyntaxTree<N>{
 				strLitTok = this.getStringLit(strLitTok);
 				this.ast.addLeafNode(strLitTok);
 			}
+			else if(this.currentNode.data == INT_EXPR || this.currentNode.data == BOOLEAN_EXPR){
+				if(this.current_isAddingOrComparing()){
+					if(operatorNode.data == INTOPp){
+						this.ast.addBranchNode((N)ADD);
+					}
+					else if(operatorNode.data == BOOLOPp){
+						Token operator = (Token)operatorNode.children.get(0).data;
+						if(operator.getLit().equals("==")){
+							this.ast.addBranchNode((N)COMPARE_EQ);
+						}
+						else if(operator.getLit().equals("!=")){
+							this.ast.addBranchNode((N)COMPARE_NEQ);
+						}
+					}
+					this.toASTchildren();
+					this.ast.endChildren();
+				}
+				else{
+					this.toASTchildren();
+				}
+			}
 			else{
 				this.toASTchildren();
 			}
@@ -181,23 +213,46 @@ public class SyntaxTree<N>{
 		}
 	}
 	
+	//if INT_EXPR or BOOL_EXPR children.size greater than 1 then we know that it must be adding/comparing.
+	//might have been a good idea to store productions in cst as objects containing its rule number
+	//so I can just it look up instead of trying to figure out.
+	public boolean current_isAddingOrComparing(){
+		if(this.currentNode.children.size() > 1){
+			return true;
+		}
+		return false;
+	}
+	
+	public Node<N> getOperatorNode(){
+		for(Node<N> n : this.currentNode.children){
+			if(n.data == INTOPp || n.data == BOOLOPp){
+				return n;
+			}
+		}
+		return null;
+	}
+	
 	//helper function, called when STR_EXPR is found, traverses cst under the expr. Concatenates and returns
 	//all chars and spaces found into a single token.
 	public Token getStringLit(Token strTok){
 		for(Node<N> n : this.currentNode.children){
-			Token childTok = (Token)n.children.get(0).data;
-			if(n.data == SPACEp){
-				strTok.setLit(strTok.getLit()+" ");
-				strTok.setLineNum(childTok.getLineNum());
-			}
-			else if(n.data == CHARp){
-				strTok.setLit(strTok.getLit()+childTok.getLit());
-				strTok.setLineNum(childTok.getLineNum());
-			}
-			else if(n.data == CHAR_LIST && n.hasChildren()){
-				this.currentNode = n;
-				strTok.setLit(strTok.getLit() + this.getStringLit(strTok));
-				this.endChildren();
+			if(n.hasChildren()){
+				if(n.data == CHAR_LIST){
+					this.currentNode = n;
+					this.getStringLit(strTok);
+					this.endChildren();
+				}
+				else{
+					Token childTok = (Token)n.children.get(0).data;
+					if(n.data == SPACEp){
+						strTok.setLit(strTok.getLit()+" ");
+						strTok.setLineNum(childTok.getLineNum());
+					}
+					else if(n.data == CHARp){
+						strTok.setLit(strTok.getLit()+childTok.getLit());
+						strTok.setLineNum(childTok.getLineNum());
+					}
+				}
 			}
 		}
 		return strTok;
