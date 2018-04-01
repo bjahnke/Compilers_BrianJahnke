@@ -177,6 +177,7 @@ public class SyntaxTree<N>{
 			}
 			else if(this.currentNode.data == INT_EXPR || this.currentNode.data == BOOLEAN_EXPR){
 				if(this.current_isAddingOrComparing()){
+					Node<N> operatorNode = this.getOperatorNode(); //location of operator leaf node's parent
 					if(operatorNode.data == INTOPp){
 						this.ast.addBranchNode((N)ADD);
 					}
