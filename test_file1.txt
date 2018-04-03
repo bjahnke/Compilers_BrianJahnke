@@ -1,7 +1,21 @@
 /* Good Code */
 {
 	int b
-	b = 1 + 2 + a
+	{
+		string b
+		boolean c
+		{
+			int d
+		}
+		{
+			string f
+		}
+	}
+	{
+		int e
+	}
+}$
+
 }$
 
 {

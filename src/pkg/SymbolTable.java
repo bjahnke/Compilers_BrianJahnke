@@ -74,7 +74,7 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 			 * */
 			
 		}
-		return false;
+		return true;
 	}
 	
 	public boolean analyzeNode(Node<N> node){
@@ -93,20 +93,21 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 				return false;
 			}
 		}
-		else if(node.data == ASSIGN){
-			Token idTok = (Token)node.children.get(0).data;
-			Token SomeTok = (Token)node.children.get(1).data;
-			if(assignIdValue()){
-				return true;
-			}
-			else{
+		return true;
+//		else if(node.data == ASSIGN){
+//			Token idTok = (Token)node.children.get(0).data;
+//			Token SomeTok = (Token)node.children.get(1).data;
+//			if(assignIdValue()){
+//				return true;
+//			}
+//			else{
 				//error prints in assignIdValue() method;
-				return false;
-			}
-		}
-		else{
-			return false;
-		}
+//				return false;
+//			}
+//		}
+//		else{
+//			return false;
+//		}
 	}
 	
 	public boolean buildSymbolTable(Node<N> parent){
@@ -114,7 +115,10 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 		for(Node<N> child : parent.children){
 			if(child.data == BLOCK){
 				this.addBranchScope();
-				return buildSymbolTable(child);
+				if(!buildSymbolTable(child)){
+					return false;
+				}
+				this.endChildren();
 			}
 			if(child.hasChildren()){
 				if(!analyzeNode(child)){
