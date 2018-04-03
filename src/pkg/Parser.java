@@ -42,15 +42,17 @@ public class Parser {
 		
 		if(p.parseProg()){
 			System.out.println("Parse completed successfully\n");
-			if(TempMain.isVerboseOnLP){
+			//if(TempMain.isVerboseOnLP){
 				System.out.println("\nCST:\n");
 				//p.pTree.printTree();
 				p.pTree.printTree3("");
 				System.out.println("\n");
-			}
+			//}
 			p.pTree.initAndGenAST();
-			SymbolTable sT = new SymbolTable(p.pTree.ast.root.data, p.pTree.ast);
-			sT.buildSymbolTable();
+			List<Var> list = new ArrayList<Var>();
+			SymbolTable sT = new SymbolTable(list, p.pTree.ast);
+			sT.buildSymbolTable(sT.ast.root);
+			SymbolTable.printSymbolTable();
 			return p.pTree;
 		}
 		else{
@@ -601,6 +603,7 @@ public class Parser {
 			return false;
 		}
 	}
+	
 	public boolean parseSpace(){
 		if(match(spaceList()) != null){
 			TempMain.verbosePrint("parseSpace()");

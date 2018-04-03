@@ -39,23 +39,35 @@ public class SyntaxTree<N>{
 		protected N data;
 		protected Node<N> parent;
 		protected List<Node<N>> children;
+		protected int nodeNum;
 		
 		public Node(){
 			this.data = null;
 			this.parent = null;
 			this.children = new ArrayList<Node<N>>();
+			this.nodeNum = 0;
 		}
 		
 		public Node(N nType){
 			this.data = nType;
 			this.parent = null;
 			this.children = new ArrayList<Node<N>>();
+			this.nodeNum = 0;
+		}
+		
+		public void setNodeNum(int num){
+			this.nodeNum = num;
+		}
+		
+		public int getNodeNum(){
+			return this.nodeNum;
 		}
 		
 		public String getNodeInfo(){
 			return "" + this.data + ", " + this.parent + ", " + this.childrenToString();
 			
 		}
+		
 		public List<Node<N>> getChildren(){
 			return this.children;
 		}
@@ -75,7 +87,7 @@ public class SyntaxTree<N>{
 		public void assignParent(Node<N> par){
 			this.parent = par;
 		}
-		
+
 		public String toString(){
 			if(this.hasChildren() 
 			|| this.data == STATEMENT_LIST
@@ -125,6 +137,7 @@ public class SyntaxTree<N>{
 		this.currentNode = n;
 	}
 	
+	//so I can cast any data to (N) and store in a tree
 	public void addBranchNode(N genType){
 		Node<N> n = new Node<N>(genType);
 		n.parent = this.currentNode;

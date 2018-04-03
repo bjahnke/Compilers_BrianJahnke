@@ -1,7 +1,7 @@
 /* Good Code */
 {
-	boolean b
-	b = false
+	int b
+	b = 1 + 2 + a
 }$
 
 {
