@@ -51,6 +51,10 @@ public class Var {
 		return this.id;
 	}
 	
+	public int getscopeNum(){
+		return this.scopeNum;
+	}
+	
 	public String toString(){
 		String varStr = this.id +"\t"+ this.type +"\t"+ this.scopeNum +"\t"+ this.idTok.getLineNum();
 		return varStr;

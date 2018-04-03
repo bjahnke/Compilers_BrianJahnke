@@ -89,7 +89,8 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 				return true;
 			}
 			else{
-				//Redeclared Identifier in same scope
+				System.out.println("Error: Redeclared Identifier '" + idTok.getLit() +
+									"' , line: " + idTok.getLineNum());
 				return false;
 			}
 		}
@@ -134,7 +135,7 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 	 * Scope Check     |
 	 *                 |
 	 -----------------*/
-	//take an id token and a scope node, returns true if id found in that node or and parent nodes
+	//take an id token and a scope node, returns node the id was found in
 	public Node<N> findId_InEntireScope(Token id, Node<N> scope){
 		if(findId_InScopeNode(id, scope)){
 			return scope;
@@ -183,8 +184,7 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 	 * Inference Rules |
 	 *                 |
 	 -----------------*/
-	public static Type inferLiteralType(Token a){
-		//if()
+	public Type inferLiteralType(Token a){
 			if(a.getType() == DIGIT){
 				return INT;
 			}
@@ -195,15 +195,25 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 				return BOOLEAN;
 			}
 			if(a.getType() == ID){
-				//if(findID(a) != null)
-				//return a.getType;
+				for(Var v : sTable){
+					if(v.getscopeNum() == this.currentNode.getNodeNum()){
+						if(v.getID().equals(a.getLit())){
+							return v.getType();
+						}
+					}
+				}
 			}
 		return null;
 	}
 	
-	//digit + digit || digit + id
-	public static Type inferIntExprType(Node a, Node b){
-		if(inferLiteralType((Token)a.data) == INT){
+	//digit+Add || digit + digit || digit + id
+	public Type inferAddType(Node<N> a, Node<N> b){
+		if(b.data == ADD){
+			Node<N> bChild1 = b.children.get(0);
+			Node<N> bChild2 = b.children.get(1);
+			inferAddType(bChild1, bChild2);
+		}
+		else if(inferLiteralType((Token)a.data) == INT){
 			if(inferLiteralType((Token)b.data) == INT){
 				return INT;
 			}
@@ -211,10 +221,7 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 		return null;
 	}
 	
-	//digit + id
-	public static Type inferIntExprType(Node a, Var b){return null;}
-	
-	public static Type inferBoolOpType(){
+	public Type inferBoolOpType(Node<N> a, Node<N> b){
 		
 		return null;
 	}

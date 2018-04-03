@@ -51,8 +51,13 @@ public class Parser {
 			p.pTree.initAndGenAST();
 			List<Var> list = new ArrayList<Var>();
 			SymbolTable sT = new SymbolTable(list, p.pTree.ast);
-			sT.buildSymbolTable(sT.ast.root);
-			SymbolTable.printSymbolTable();
+			if(sT.buildSymbolTable(sT.ast.root)){
+				SymbolTable.printSymbolTable();
+			}
+			else{
+				System.out.println("Program " + Lexer.progNum + " Symbol Table"
+						+ "\nnot produced due to an error in semantic analysis.\n");
+			}
 			return p.pTree;
 		}
 		else{
