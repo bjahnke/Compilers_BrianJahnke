@@ -29,8 +29,8 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 	public void addBranchScope(){
 		List<Var> varList = new ArrayList<Var>();
 		super.addBranchNode((N)varList);
-		this.currentNode.setNodeNum(this.scopeCount);
 		this.scopeCount++;
+		this.currentNode.setNodeNum(this.scopeCount);	
 	}
 	
 	//Creates a var, then adds to scope
@@ -83,8 +83,8 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 			Token typeTok = (Token)node.children.get(0).data;
 			Token idTok = (Token)node.children.get(1).data;
 					
-			//If the id is not found in the entire scope then we add the variable to the current scope node
-			if(findId_InEntireScope(idTok, this.currentNode) == null){ 
+			//If the id is not found in the scope then we add the variable to the current scope node
+			if(!findId_InScopeNode(idTok, this.currentNode)){ 
 				this.addVar(typeTok, idTok, this.currentNode);
 				return true;
 			}
@@ -163,9 +163,15 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 	 -----------------*/
 	
 	public static void printSymbolTable(){
+		System.out.println("Program " + Lexer.progNum + " Symbol Table\n"
+						+	"-----------------------------\n"
+						+	"Name\tType\tScope\tLine\n"
+						+	"-----------------------------");
 		for(Var v : sTable){
 			System.out.println(v.toString());
 		}
+		System.out.println("\n");
+		sTable.clear();
 	}
 	
 	/*-----------------|
