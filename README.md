@@ -7,3 +7,4 @@ How To Compile and Run the Project from CMD/Terminal:
 5. To Load Test File:
 -When prompt, press 1 and enter to load a test file with custom path
 -Type the path of your file, including the file name and extension, and press enter
+6. Enter 'y' or 'n' to toggle verbose mode for Lex/Parse.
