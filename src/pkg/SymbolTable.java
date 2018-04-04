@@ -57,15 +57,7 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 		scope.data = (N)vars;
 	}
 
-	public boolean assignIdValue(Node<N> idNode, Node<N> assignExprNode){
-		
-		if(inferLiteralType((Token)idNode.data) == inferExprType(assignExprNode)){
-			Var matchedVar = findId_InEntireScope((Token)idNode.data, this.currentNode);
-			matchedVar.varIsInit();
-			return true;
-		}
-		return false;
-	}
+
 	
 	public boolean analyzeNode(Node<N> node){
 		
@@ -84,32 +76,26 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 				return false;
 			}
 		}
-		else if(node.data == ASSIGN){
+		else if(node.data == ASSIGNMENT_STATEMENT){
 			Node<N> idNode = node.children.get(0);
 			Node<N> assignExpr = node.children.get(1);
-			if(assignIdValue(idNode, assignExpr)){
+			if(assignTypeCheck(idNode, assignExpr)){
 				return true;
 			}
-			else{
-				//error prints in assignIdValue() method;
-				return false;
-			}
 		}
-		else if(node.data == IF_STATEMENT){
-			if(inferExprType(node.children.get(0)) == BOOLEAN){   //boolExpr location
-				buildSymbolTable(node.children.get(1));
+		else if(node.data == IF_STATEMENT || node.data == WHILE_STATEMENT){
+			if(inferExprType(node.children.get(0)) == BOOLEAN){               //boolExpr location
+				buildSymbolTable(node.children.get(1)); //return this
 				return true;
 			}
 		}
 		else if(node.data == PRINT_STATEMENT){
 			Node<N> exprInPrint = node.children.get(0);
-			if(){
-				
+			if(inferExprType(exprInPrint) != null){
+				return true;
 			}
 		}
-		else{
-			return false;
-		}
+		return false;
 	}
 	
 	public boolean buildSymbolTable(Node<N> parent){
@@ -213,28 +199,34 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 	
 	//digit+Add || digit + digit || digit + id
 	public Type inferAddType(Node<N> a, Node<N> b){
+		Type aType = null;
+		Type bType = null;
 		if(b.data == ADD){
 			Node<N> bChild1 = b.children.get(0);
 			Node<N> bChild2 = b.children.get(1);
 			inferAddType(bChild1, bChild2);
 		}
 		else{
-			Type aType = inferLiteralType((Token)a.data);
-			Type bType = inferLiteralType((Token)a.data);
+			aType = inferLiteralType((Token)a.data);
+			bType = inferLiteralType((Token)a.data);
 			if(aType == INT){
 				if(bType == INT){         
 					return INT;            
 				}
 			}	
-		}
-		System.out.println("Error: Type Mismatch");
+		}	
+		id_typeMismatchError(a, INT, bType);
 		return null;
 	}
 	
 	public Type inferBoolOpType(Node<N> a, Node<N> b){
-		
-		if(inferExprType(a) == inferExprType(b)){
+		Type aType = inferExprType(a);
+		Type bType = inferExprType(b);
+		if(aType == bType){
 			return BOOLEAN;
+		}
+		if(aType != null || bType != null){   //if either are null then we already printed an error
+			System.out.println("Type Mismatch Error: Cannot compare a "+aType+" to a "+bType);
 		}
 		return null;
 	}
@@ -258,8 +250,24 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 		}
 	}
 	
-	public Type checkExprType(){
-		
-		return null;
+	public boolean assignTypeCheck(Node<N> idNode, Node<N> assignExprNode){
+		Type idNodeType = inferLiteralType((Token)idNode.data);
+		Type assignExprNodeType = inferExprType(assignExprNode);
+		if(idNodeType == assignExprNodeType){
+			Var matchedVar = findId_InEntireScope((Token)idNode.data, this.currentNode);
+			matchedVar.varIsInit();
+			return true;
+		}
+		id_typeMismatchError(idNode, idNodeType, assignExprNodeType);
+		return false;
 	}
+	
+	
+	//Mismatch Error Print
+	public void id_typeMismatchError(Node<N> idNode, Type expectedType, Type nodeType){
+		Token tok = (Token)idNode.data;
+		System.out.println("Type Mismatch Error: " + tok.getLit() 
+							+ " is of type " + expectedType +" but was assigned to a " + nodeType + ", line: " + tok.getLineNum());
+	}
+	
 }
