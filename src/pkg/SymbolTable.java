@@ -59,7 +59,11 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 		sTable.set(v.getSymbolTableIndex(), v);
 	}
 	
-	public Node<N> getScopeByNumber(int num, Node<N> scope){	
+	public Node<N> getScopeByNumber(int num, Node<N> scope){
+		//if the first scope passed(root) is the num we are looking for
+		if(scope.getNodeNum() == num){
+			return scope;
+		}
 		for(Node<N> childScope : scope.children){
 			if(childScope.getNodeNum() == num){
 				return childScope;
@@ -114,8 +118,11 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 		}
 		else if(node.data == IF_STATEMENT || node.data == WHILE_STATEMENT){
 			if(inferExprType(node.children.get(0)) == BOOLEAN){               //boolExpr location
-				buildSymbolTable(node.children.get(1)); //return this
-				return true;
+				this.addBranchScope();
+				if(buildSymbolTable(node.children.get(1))){
+					this.endChildren();
+					return true;
+				}
 			}
 		}
 		else if(node.data == PRINT_STATEMENT){
@@ -137,7 +144,7 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 				}
 				this.endChildren();
 			}
-			if(child.hasChildren()){
+			if(child.hasChildren() && child.data != BLOCK){
 				if(!analyzeNode(child)){
 					return false;
 				}
@@ -192,7 +199,30 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 		for(Var v : sTable){
 			System.out.println(v.toString());
 		}
-		System.out.println("\n");
+	}
+	
+	public void symbolTableWarnings(){
+		String warningStr = "\nWarnings:\n";
+		boolean warnings = false;
+		for(Var v : sTable){
+			if(v.isInit()){
+				if(!v.isUsed()){
+					warningStr += "-Var " + v.getID() +" is initialized but unused, line of decl: "+v.getIdTok().getLineNum()+"\n";
+					warnings = true;
+				}
+			}
+			else if(v.isUsed()){
+				warningStr += "-Var " + v.getID() +" is not initialized but used, line of decl: "+v.getIdTok().getLineNum()+"\n";
+				warnings = true;
+			}
+			else{
+				warningStr += "-Var " + v.getID() +" is declared but not initialized, line of decl: "+v.getIdTok().getLineNum()+"\n";
+				warnings = true;
+			}
+		}
+		if(warnings){
+			System.out.println(warningStr);
+		}
 		sTable.clear();
 	}
 	
@@ -211,18 +241,27 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 		if(a.getType() == BOOLVAL){
 			return BOOLEAN;
 		}
+		//for vars that are found during expr traversal, so they can be marked 'used'
 		if(a.getType() == ID){
-			Var matchedVar = findId_InEntireScope(a, this.currentNode);
-			if(matchedVar != null){
-				return matchedVar.getType();
+			Var foundVar = findIdVar(a);
+			if(foundVar != null){
+				updateVarIsUsed(foundVar);
+				return foundVar.getType();
 			}
-			else{
-				System.out.println("Error: Id '" +a.getLit()+ "' used but never declared, line: " + a.getLineNum());
-				return null;
-			}
-
 		}
 		return null;
+	}
+	
+	//used on vars getting init'ed in order to be marked 'initialized' 
+	public Var findIdVar(Token id){
+		Var matchedVar = findId_InEntireScope(id, this.currentNode);
+		if(matchedVar != null){
+			return matchedVar;
+		}
+		else{
+			System.out.println("Error: Id '" +id.getLit()+ "' used but never declared, line: " + id.getLineNum());
+			return null;
+		}
 	}
 	
 	
@@ -273,21 +312,17 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 			aChild2 = a.children.get(1);
 			return inferBoolOpType(aChild1, aChild2);
 		}
-		else{
-			//shouldn't cause a cast exception unless this is called improperly
-			return inferLiteralType((Token)a.data);
-		}
+		return inferLiteralType((Token)a.data);
 	}
 	
 	public boolean assignTypeCheck(Node<N> idNode, Node<N> assignExprNode){
-		Type idNodeType = inferLiteralType((Token)idNode.data);
+		Var idFoundVar = findIdVar((Token)idNode.data);
 		Type assignExprNodeType = inferExprType(assignExprNode);
-		if(idNodeType == assignExprNodeType){
-			Var matchedVar = findId_InEntireScope((Token)idNode.data, this.currentNode);
-			updateVarIsInit(matchedVar);
+		if(idFoundVar.getType() == assignExprNodeType){
+			updateVarIsInit(idFoundVar);
 			return true;
 		}
-		id_typeMismatchError(idNode, idNodeType, assignExprNodeType);
+		id_typeMismatchError(idNode, idFoundVar.getType(), assignExprNodeType);
 		return false;
 	}
 	
@@ -299,29 +334,6 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 							+ " is of type " + expectedType +" but was assigned a " + nodeType + ", line: " + tok.getLineNum());
 	}
 	
-	public void symbolTableWarnings(){
-		String warningStr = "\nWarnings:\n";
-		boolean warnings = false;
-		for(Var v : sTable){
-			if(v.isInit()){
-				if(!v.isUsed()){
-					warningStr += "\t-Var " + v.getID() +" is initialized but unused, line of decl: "+v.getIdTok().getLineNum()+"\n";
-					warnings = true;
-				}
-			}
-			else if(v.isUsed()){
-				warningStr += "\t-Var " + v.getID() +" is not initialized but used, line of decl: "+v.getIdTok().getLineNum()+"\n";
-				warnings = true;
-			}
-			else{
-				warningStr = "\t-Var " + v.getID() +" is declared but not initialized, line of decl: "+v.getIdTok().getLineNum()+"\n";
-				warnings = true;
-			}
-		}
-		if(warnings){
-			System.out.println(warningStr);
-		}
-		
-	}
+
 	
 }

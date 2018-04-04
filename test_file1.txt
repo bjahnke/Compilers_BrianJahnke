@@ -3,9 +3,11 @@
 	{
 		int b
 		{
+			b = 1
 			int c
 			int d
-			if (a == ((c == d) == (a == d))){}
+			if (a == ((c == d) == (a == false))){}
+			print(b)
 		}
 	}
 }$

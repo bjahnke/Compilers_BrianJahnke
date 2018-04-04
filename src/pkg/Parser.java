@@ -53,10 +53,11 @@ public class Parser {
 			SymbolTable sT = new SymbolTable(list, p.pTree.ast);
 			if(sT.buildSymbolTable(sT.ast.root)){
 				SymbolTable.printSymbolTable();
+				sT.symbolTableWarnings();
 			}
 			else{
-				System.out.println("Program " + Lexer.progNum + " Symbol Table"
-						+ "\nnot produced due to an error in semantic analysis.\n");
+				System.out.println("Program " + Lexer.progNum + " Symbol Table:"
+						+ "\nNot produced due to an error in semantic analysis.\n");
 			}
 			return p.pTree;
 		}
