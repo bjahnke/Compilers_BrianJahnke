@@ -34,12 +34,24 @@ public class Var {
 		this.varIsInit();
 	}
 	
+	public Token getIdTok(){
+		return this.idTok;
+	}
+	
 	public Type getType(){
 		return this.type;
 	}
 	
 	public String getID(){
 		return this.id;
+	}
+	
+	public boolean isInit(){
+		return this.isInit;
+	}
+	
+	public boolean isUsed(){
+		return this.isUsed;
 	}
 	
 	public int getscopeNum(){

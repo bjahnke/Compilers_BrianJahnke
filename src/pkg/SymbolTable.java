@@ -173,26 +173,26 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 	 *                 |
 	 -----------------*/
 	public Type inferLiteralType(Token a){
-			if(a.getType() == DIGIT){
-				return INT;
+		if(a.getType() == DIGIT){
+			return INT;
+		}
+		if(a.getType() == STRINGLITERAL){
+			return STRING;
+		}
+		if(a.getType() == BOOLVAL){
+			return BOOLEAN;
+		}
+		if(a.getType() == ID){
+			Var matchedVar = findId_InEntireScope(a, this.currentNode);
+			if(matchedVar != null){
+				return matchedVar.getType();
 			}
-			if(a.getType() == STRINGLITERAL){
-				return STRING;
+			else{
+				System.out.println("Error: Id '" +a.getLit()+ "' used but never declared, line: " + a.getLineNum());
+				return null;
 			}
-			if(a.getType() == BOOLVAL){
-				return BOOLEAN;
-			}
-			if(a.getType() == ID){
-				Var matchedVar = findId_InEntireScope(a, this.currentNode);
-				if(matchedVar != null){
-					return matchedVar.getType();
-				}
-				else{
-					System.out.println("Error: Id '" +a.getLit()+ "' used but never declared, line: " + a.getLineNum());
-				}
 
-			}
-		//Some weird error
+		}
 		return null;
 	}
 	
@@ -225,8 +225,8 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 		if(aType == bType){
 			return BOOLEAN;
 		}
-		if(aType != null || bType != null){   //if either are null then we already printed an error
-			System.out.println("Type Mismatch Error: Cannot compare a "+aType+" to a "+bType);
+		if(aType != null && bType != null){   //if either are null then we already printed an error
+			System.out.println("Type Mismatch Error: Cannot compare "+aType+" to "+bType);
 		}
 		return null;
 	}
@@ -245,7 +245,7 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 			return inferBoolOpType(aChild1, aChild2);
 		}
 		else{
-			//hopefully this will never cause a cast exception
+			//shouldn't cause a cast exception unless this is called improperly
 			return inferLiteralType((Token)a.data);
 		}
 	}
@@ -267,7 +267,22 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 	public void id_typeMismatchError(Node<N> idNode, Type expectedType, Type nodeType){
 		Token tok = (Token)idNode.data;
 		System.out.println("Type Mismatch Error: " + tok.getLit() 
-							+ " is of type " + expectedType +" but was assigned to a " + nodeType + ", line: " + tok.getLineNum());
+							+ " is of type " + expectedType +" but was assigned a " + nodeType + ", line: " + tok.getLineNum());
+	}
+	
+	public void symbolTableWarnings(){
+		String warningStr = "\nWarnings:\n";
+		boolean warnings = false;
+		for(Var v : sTable){
+			if(v.isInit()){
+				if(!v.isUsed()){
+					warningStr += "\t-Var " + v.getID() +"is initialized but unused, line: "+v.getIdTok().getLineNum()+"\n";
+				}
+			}
+			else{
+				warningStr = "\t-Var " + v.getID() +"is declared but not initialized, line: "+v.getIdTok().getLineNum()+"\n";
+			}
+		}
 	}
 	
 }
