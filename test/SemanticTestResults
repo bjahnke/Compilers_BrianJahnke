@@ -1,0 +1,3 @@
+Ran test cases through my new test_file1.txt. All "Good Code" was analyzed without any errors or warnings as intended.
+All proper warnings were printed under the symbol table upon its completion. Expected errors occured where expected 
+and output the proper error message. Symbol table was not printed in these cases
