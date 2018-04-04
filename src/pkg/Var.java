@@ -11,15 +11,6 @@ public class Var {
 	
 	public Var(){};
 	
-	public Var(Type t, String d, int sNum){
-		this.type = t;
-		this.id = d;
-		this.val = "";
-		this.isUsed = false;
-		this.isInit = false;
-		this.scopeNum = sNum;
-	}
-	
 	public Var(Token t, Token iD, int sNum){
 		this.idTok = iD;
 		this.type = tokenToTypeEnum(t);

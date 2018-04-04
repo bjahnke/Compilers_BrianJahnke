@@ -15,7 +15,6 @@ public class TempMain {
 		isVerboseOnLP = toggleVerbose();
 		String cString = scanFileReturnCharString(testFile);
 		List<Token> tList = Lexer.lex(cString);
-		
 		System.out.println("\nHave nice day.");
 	}
 	

@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import pkg.SyntaxTree.Node;
 
 public class SymbolTable<N> extends SyntaxTree<N>{
 	protected int scopeCount;
@@ -44,7 +43,7 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 	
 	//Cast the current node data from N to List<Vars> and returns result 
 	
-	public List<Var> getScopeVars(Node scope){
+	public List<Var> getScopeVars(Node<N> scope){
 		List<Var> vars = (List<Var>)scope.data;
 		return vars;
 	}
@@ -54,27 +53,18 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 		this.currentNode.data = (N)vars;
 	}
 	
-	public void setScopeVars(List<Var> vars, Node scope){
+	public void setScopeVars(List<Var> vars, Node<N> scope){
 		scope.data = (N)vars;
 	}
 
-	public boolean assignIdValue(){
-		boolean varAssigned = false;
-		List<Var> scopeVars = getScopeVars(this.currentNode);
-		Token idTok = (Token)this.ast.currentNode.children.get(0).data;          //id token of assignment
-		Token valTok = (Token)this.ast.currentNode.children.get(1).data;		 //value token of assignment
-		Node scopeOfId = findId_InEntireScope(idTok, this.currentNode); 
+	public boolean assignIdValue(Node<N> idNode, Node<N> assignExprNode){
 		
-		if(scopeOfId != null){
-			Type idType = inferLiteralType(idTok);
-			/* Pseudo:
-			 * var a: has the type of the id
-			 * var b: something that describes the expr being assigned to the id
-			 * if(compare(a, b) such that 
-			 * */
-			
+		if(inferLiteralType((Token)idNode.data) == inferExprType(assignExprNode)){
+			Var matchedVar = findId_InEntireScope((Token)idNode.data, this.currentNode);
+			matchedVar.varIsInit();
+			return true;
 		}
-		return true;
+		return false;
 	}
 	
 	public boolean analyzeNode(Node<N> node){
@@ -84,7 +74,7 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 			Token idTok = (Token)node.children.get(1).data;
 					
 			//If the id is not found in the scope then we add the variable to the current scope node
-			if(!findId_InScopeNode(idTok, this.currentNode)){ 
+			if(findId_InScopeNode(idTok, this.currentNode) == null){ 
 				this.addVar(typeTok, idTok, this.currentNode);
 				return true;
 			}
@@ -94,21 +84,32 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 				return false;
 			}
 		}
-		return true;
-//		else if(node.data == ASSIGN){
-//			Token idTok = (Token)node.children.get(0).data;
-//			Token SomeTok = (Token)node.children.get(1).data;
-//			if(assignIdValue()){
-//				return true;
-//			}
-//			else{
+		else if(node.data == ASSIGN){
+			Node<N> idNode = node.children.get(0);
+			Node<N> assignExpr = node.children.get(1);
+			if(assignIdValue(idNode, assignExpr)){
+				return true;
+			}
+			else{
 				//error prints in assignIdValue() method;
-//				return false;
-//			}
-//		}
-//		else{
-//			return false;
-//		}
+				return false;
+			}
+		}
+		else if(node.data == IF_STATEMENT){
+			if(inferExprType(node.children.get(0)) == BOOLEAN){   //boolExpr location
+				buildSymbolTable(node.children.get(1));
+				return true;
+			}
+		}
+		else if(node.data == PRINT_STATEMENT){
+			Node<N> exprInPrint = node.children.get(0);
+			if(){
+				
+			}
+		}
+		else{
+			return false;
+		}
 	}
 	
 	public boolean buildSymbolTable(Node<N> parent){
@@ -136,9 +137,10 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 	 *                 |
 	 -----------------*/
 	//take an id token and a scope node, returns node the id was found in
-	public Node<N> findId_InEntireScope(Token id, Node<N> scope){
-		if(findId_InScopeNode(id, scope)){
-			return scope;
+	public Var findId_InEntireScope(Token id, Node<N> scope){
+		Var foundVar = findId_InScopeNode(id, scope);
+		if(foundVar != null){
+			return foundVar;
 		}
 		if(!scope.equals(this.root)){
 			return findId_InEntireScope(id, scope.parent);
@@ -149,15 +151,15 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 	}
 	
 	//takes an id token and a scope node, returns true if id found in that node
-	public boolean findId_InScopeNode(Token id, Node<N> scope){
+	public Var findId_InScopeNode(Token id, Node<N> scope){
 		List<Var> scopeVars = this.getScopeVars(scope);	
 		for(Var v : scopeVars){
 			String storedId = v.getID();
 			if(storedId.equals(id.getLit())){
-				return true;
+				return v;
 			}
 		}
-		return false;
+		return null;
 	}
 	
 	
@@ -195,16 +197,19 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 				return BOOLEAN;
 			}
 			if(a.getType() == ID){
-				for(Var v : sTable){
-					if(v.getscopeNum() == this.currentNode.getNodeNum()){
-						if(v.getID().equals(a.getLit())){
-							return v.getType();
-						}
-					}
+				Var matchedVar = findId_InEntireScope(a, this.currentNode);
+				if(matchedVar != null){
+					return matchedVar.getType();
 				}
+				else{
+					System.out.println("Error: Id '" +a.getLit()+ "' used but never declared, line: " + a.getLineNum());
+				}
+
 			}
+		//Some weird error
 		return null;
 	}
+	
 	
 	//digit+Add || digit + digit || digit + id
 	public Type inferAddType(Node<N> a, Node<N> b){
@@ -213,15 +218,47 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 			Node<N> bChild2 = b.children.get(1);
 			inferAddType(bChild1, bChild2);
 		}
-		else if(inferLiteralType((Token)a.data) == INT){
-			if(inferLiteralType((Token)b.data) == INT){
-				return INT;
-			}
+		else{
+			Type aType = inferLiteralType((Token)a.data);
+			Type bType = inferLiteralType((Token)a.data);
+			if(aType == INT){
+				if(bType == INT){         
+					return INT;            
+				}
+			}	
 		}
+		System.out.println("Error: Type Mismatch");
 		return null;
 	}
 	
 	public Type inferBoolOpType(Node<N> a, Node<N> b){
+		
+		if(inferExprType(a) == inferExprType(b)){
+			return BOOLEAN;
+		}
+		return null;
+	}
+	
+	public Type inferExprType(Node<N> a){
+		Node<N> aChild1;
+		Node<N> aChild2;
+		if(a.data == ADD){
+			aChild1 = a.children.get(0);
+			aChild2 = a.children.get(1);
+			return inferAddType(aChild1, aChild2);
+		}
+		else if(a.data == COMPARE_EQ || a.data == COMPARE_NEQ){
+			aChild1 = a.children.get(0);
+			aChild2 = a.children.get(1);
+			return inferBoolOpType(aChild1, aChild2);
+		}
+		else{
+			//hopefully this will never cause a cast exception
+			return inferLiteralType((Token)a.data);
+		}
+	}
+	
+	public Type checkExprType(){
 		
 		return null;
 	}
