@@ -1,19 +1,84 @@
+/* Good Code */
+{
+	string a
+	string b 
+	{
+		boolean c
+		int a
+		a = 1 + 2
+		c = true
+		while(c==true){	print(a) }
+	}
+	a = "hello"
+	b = "hello"
+	print((a == b))
+}$
+
 {
 	boolean a
-	{
-		int b
-		{
-			b = 1
-			int c
-			int d
-			if (a == ((c == d) == (a == false))){}
-			print(b)
-		}
-	}
+	a = (false == true)
+	print(a)
 }$
 
 {
 	int a
-	string b
-	a = b
+	int b
+	int c
+	int d
+	a = 1
+	b = 2
+	c = 3
+	d = 4
+	if ((a == b) != (c == d)){
+		print(c)
+	}
 }$
+
+/* Warning Code */
+
+{
+	int a
+	boolean b 
+	string c
+	{
+		b = false
+		if(c == "hey"){}
+	}
+}$
+
+/* Error Code */
+
+{
+	int a
+	string b
+	a = 1 + b	
+}$
+	
+{
+	print(a)
+}$
+
+{
+	int a 
+	string b
+	boolean c
+	{
+		a = 1
+		int b
+		b = 2
+		if(a == (b != c)){
+			print(b)
+		}
+}$
+
+
+
+
+
+
+
+
+
+
+
+
