@@ -5,6 +5,8 @@ public class Var {
 	private String val;
 	private Type type;
 	private int scopeNum;
+	private int scopeListIndex;
+	private int symbolTableIndex;
 	private boolean isUsed;
 	private boolean isInit;
 	private Token idTok;
@@ -19,6 +21,16 @@ public class Var {
 		this.isUsed = false;
 		this.isInit = false;
 		this.scopeNum = sNum;
+		this.scopeListIndex = 0;
+		this.symbolTableIndex = 0;
+	}
+	
+	public void setScopeListIndex(int i){
+		this.scopeListIndex = i;
+	}
+	
+	public void setSymbolTableIndex(int i){
+		this.symbolTableIndex = i;
 	}
 	
 	public void varIsUsed(){
@@ -56,6 +68,14 @@ public class Var {
 	
 	public int getscopeNum(){
 		return this.scopeNum;
+	}
+	
+	public int getScopeListIndex(){
+		return this.scopeListIndex;
+	}
+	
+	public int getSymbolTableIndex(){
+		return this.symbolTableIndex;
 	}
 	
 	public String toString(){

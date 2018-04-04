@@ -36,9 +36,39 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 	public void addVar(Token type, Token id, Node<N> scope){
 		Var v = new Var(type, id, scope.getNodeNum());
 		List<Var> scopeVars = getScopeVars(scope);
+		v.setScopeListIndex(scopeVars.size());
 		scopeVars.add(v);
 		setScopeVars(scopeVars, scope);
+		v.setSymbolTableIndex(sTable.size());
 		sTable.add(v);
+	}
+	
+	public void updateVarIsUsed(Var v){
+		v.varIsUsed();
+		Node<N> scope = getScopeByNumber(v.getscopeNum(), this.root);
+		List<Var> scopeVars = getScopeVars(scope);
+		scopeVars.set(v.getScopeListIndex(), v);
+		sTable.set(v.getSymbolTableIndex(), v);
+	}
+	
+	public void updateVarIsInit(Var v){
+		v.varIsInit();
+		Node<N> scope = getScopeByNumber(v.getscopeNum(), this.root);
+		List<Var> scopeVars = getScopeVars(scope);
+		scopeVars.set(v.getScopeListIndex(), v);
+		sTable.set(v.getSymbolTableIndex(), v);
+	}
+	
+	public Node<N> getScopeByNumber(int num, Node<N> scope){	
+		for(Node<N> childScope : scope.children){
+			if(childScope.getNodeNum() == num){
+				return childScope;
+			}
+			if(childScope.hasChildren()){
+				return getScopeByNumber(num, childScope);
+			}
+		}
+		return null;
 	}
 	
 	//Cast the current node data from N to List<Vars> and returns result 
@@ -60,7 +90,6 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 
 	
 	public boolean analyzeNode(Node<N> node){
-		
 		if(node.data == VAR_DECL){
 			Token typeTok = (Token)node.children.get(0).data;
 			Token idTok = (Token)node.children.get(1).data;
@@ -255,7 +284,7 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 		Type assignExprNodeType = inferExprType(assignExprNode);
 		if(idNodeType == assignExprNodeType){
 			Var matchedVar = findId_InEntireScope((Token)idNode.data, this.currentNode);
-			matchedVar.varIsInit();
+			updateVarIsInit(matchedVar);
 			return true;
 		}
 		id_typeMismatchError(idNode, idNodeType, assignExprNodeType);
@@ -276,13 +305,23 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 		for(Var v : sTable){
 			if(v.isInit()){
 				if(!v.isUsed()){
-					warningStr += "\t-Var " + v.getID() +"is initialized but unused, line: "+v.getIdTok().getLineNum()+"\n";
+					warningStr += "\t-Var " + v.getID() +" is initialized but unused, line of decl: "+v.getIdTok().getLineNum()+"\n";
+					warnings = true;
 				}
 			}
+			else if(v.isUsed()){
+				warningStr += "\t-Var " + v.getID() +" is not initialized but used, line of decl: "+v.getIdTok().getLineNum()+"\n";
+				warnings = true;
+			}
 			else{
-				warningStr = "\t-Var " + v.getID() +"is declared but not initialized, line: "+v.getIdTok().getLineNum()+"\n";
+				warningStr = "\t-Var " + v.getID() +" is declared but not initialized, line of decl: "+v.getIdTok().getLineNum()+"\n";
+				warnings = true;
 			}
 		}
+		if(warnings){
+			System.out.println(warningStr);
+		}
+		
 	}
 	
 }
