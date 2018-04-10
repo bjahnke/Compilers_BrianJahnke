@@ -250,6 +250,9 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 				updateVarIsUsed(foundVar);
 				return foundVar.getType();
 			}
+			else{
+				System.out.println("Error: Id '" +a.getLit()+ "' used but never declared, line: " + a.getLineNum());
+			}
 		}
 		return null;
 	}
@@ -261,7 +264,6 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 			return matchedVar;
 		}
 		else{
-			System.out.println("Error: Id '" +id.getLit()+ "' used but never declared, line: " + id.getLineNum());
 			return null;
 		}
 	}
@@ -275,18 +277,20 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 		if(b.data == ADD){
 			Node<N> bChild1 = b.children.get(0);
 			Node<N> bChild2 = b.children.get(1);
-			inferAddType(bChild1, bChild2);
+			return inferAddType(bChild1, bChild2);
 		}
 		else{
 			aType = inferLiteralType((Token)a.data);
-			bType = inferLiteralType((Token)a.data);
+			bType = inferLiteralType((Token)b.data);
 			if(aType == INT){
 				if(bType == INT){         
 					return INT;            
 				}
 			}	
-		}	
-		id_typeMismatchError(a, INT, bType);
+		}
+		if(bType != null){
+			typeMismatchError(a, aType, b ,bType);
+		}
 		return null;
 	}
 	
@@ -321,25 +325,34 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 	}
 	
 	public boolean assignTypeCheck(Node<N> idNode, Node<N> assignExprNode){
-		//System.out.println("Assignment Type Check");
-		Var idFoundVar = findIdVar((Token)idNode.data);
+		boolean typesMatched = false;
+		Token idNodeTok = (Token)idNode.data;
+		Var idFoundVar = findIdVar(idNodeTok);
 		Type assignExprNodeType = inferExprType(assignExprNode);
-		if(idFoundVar.getType() == assignExprNodeType){
-			updateVarIsInit(idFoundVar);
-			return true;
+		if(idFoundVar != null){ 
+			if(assignExprNodeType != null){
+				if(idFoundVar.getType() == assignExprNodeType){
+					updateVarIsInit(idFoundVar);
+					typesMatched = true;
+				}
+				else{
+					typeMismatchError(idNode, idFoundVar.getType(), assignExprNode, assignExprNodeType);
+				}
+			}
 		}
-		id_typeMismatchError(idNode, idFoundVar.getType(), assignExprNodeType);
-		return false;
+		else{
+			System.out.println("Error: Id '" + idNodeTok.getLit() + "' is initialized but never declared, line: " + idNodeTok.getLineNum());
+		}
+		return typesMatched;
 	}
 	
 	
 	//Mismatch Error Print
-	public void id_typeMismatchError(Node<N> idNode, Type expectedType, Type nodeType){
-		Token tok = (Token)idNode.data;
-		System.out.println("Type Mismatch Error: " + tok.getLit() 
-							+ " is of type " + expectedType +" but was assigned a " + nodeType + ", line: " + tok.getLineNum());
+	public void typeMismatchError(Node<N> node1, Type expectedType, Node<N> node2, Type node2Type){
+		Token node1Tok = (Token)node1.data;
+		Token node2Tok = (Token)node2.data;
+		System.out.println("Type Mismatch Error: " + node2Type +"("+node2Tok.getLit()+") <-!-> "
+							+ expectedType +"("+node1Tok.getLit()+"), line: " + node1Tok.getLineNum());
 	}
-	
-
 	
 }

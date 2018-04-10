@@ -100,7 +100,6 @@ public class TempMain {
 				File customFile = new File(testFilePath);
 				boolean pathExists = customPathExists(customFile);
 				if(pathExists){
-					reader.close();
 					return customFile;
 				}
 			}

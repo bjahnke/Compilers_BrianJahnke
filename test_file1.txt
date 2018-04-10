@@ -1,5 +1,11 @@
 /* Good Code */
 {
+	a = 1 + b
+}$
+{
+	print(1+2+3+4+5+4+3+2+1)
+}$
+{
 	string a
 	string b 
 	{
