@@ -233,7 +233,6 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 	 *                 |
 	 -----------------*/
 	public Type inferLiteralType(Token a){
-		//System.out.println("Literals or Id Type Check");
 		if(a.getType() == DIGIT){
 			return INT;
 		}
@@ -271,7 +270,6 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 	
 	//digit+Add || digit + digit || digit + id
 	public Type inferAddType(Node<N> a, Node<N> b){
-		//System.out.println("Add Type Check");
 		Type aType = null;
 		Type bType = null;
 		if(b.data == ADD){
@@ -295,7 +293,6 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 	}
 	
 	public Type inferBoolOpType(Node<N> a, Node<N> b){
-		//System.out.println("Compare Type Check");
 		Type aType = inferExprType(a);
 		Type bType = inferExprType(b);
 		if(aType == bType){
@@ -308,7 +305,6 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 	}
 	
 	public Type inferExprType(Node<N> a){
-		//System.out.println("Expression Type Check");
 		Node<N> aChild1;
 		Node<N> aChild2;
 		if(a.data == ADD){

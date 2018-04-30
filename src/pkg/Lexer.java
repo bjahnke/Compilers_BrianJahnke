@@ -110,7 +110,7 @@ public class Lexer {
 	 * Lexer           |
 	 *                 |
 	 -----------------*/
-	public static List<Token> lex(String input) {
+	public static List<SyntaxTree> lex(String input) {
 		List<Token> result = new ArrayList<Token>();
 		
 		boolean eop = false;
@@ -254,7 +254,7 @@ public class Lexer {
 			TempMain.verbosePrint(warningMsg);
 			warningMsg = "";
 		}
-		return result;
+		return parsedProgsList;
 	}
 	
 /*-----------------|

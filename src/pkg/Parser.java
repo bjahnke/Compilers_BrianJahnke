@@ -44,7 +44,6 @@ public class Parser {
 			System.out.println("Parse completed successfully\n");
 			//if(TempMain.isVerboseOnLP){
 				System.out.println("\nCST:\n");
-				//p.pTree.printTree();
 				p.pTree.printTree3("");
 				System.out.println("\n");
 			//}
@@ -54,12 +53,14 @@ public class Parser {
 			if(sT.buildSymbolTable(sT.ast.root)){
 				SymbolTable.printSymbolTable();
 				sT.symbolTableWarnings();
+				return sT;
 			}
 			else{
 				System.out.println("Program " + Lexer.progNum + " Symbol Table:"
 						+ "\nNot produced due to an error in semantic analysis.\n");
+				return null;
 			}
-			return p.pTree;
+			
 		}
 		else{
 				System.out.println("Parse failed\n");
