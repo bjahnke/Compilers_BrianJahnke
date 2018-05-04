@@ -7,7 +7,7 @@ public class Token {
 	private int lineNum;
 	
 	public Token(){
-		this.type = STRINGLITERAL;     //only use default for stringliteral
+		this.type = STRINGLITERAL;     //only use default for stringliteral constructor
 		this.lit = "";
 		this.lineNum = -1;
 	}

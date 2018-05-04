@@ -10,9 +10,11 @@ import java.util.List;
 public class CodeGen<N> {
 	public SyntaxTree ast;
 	public SymbolTable symbolTree;
-	public String[] opCodes = new String[255];
+	public String[] runEnv = new String[255];
+	public String[] digitMemLocs = new String[10];
 	public List<StaticData> staticTable = new ArrayList<StaticData>();
 	public int opCodeIndex = 0;
+	public int heapIndex = 154;
 	
 	public CodeGen(SymbolTable sT){
 		this.symbolTree = sT;
@@ -73,7 +75,7 @@ public class CodeGen<N> {
 	}
 	
 	public String[] convertAssign(SyntaxTree.Node<N> node){
-		
+		String exprOpCodes = convertExpr(node);
 		String[] assignOpCodes = {
 				"A9", 
 				"0+getSum(0, node)", 
@@ -84,8 +86,26 @@ public class CodeGen<N> {
 		return assignOpCodes;	
 	}
 	
+	public String[] convertExpr(SyntaxTree.Node<N> node){
+		Token nodeTok = (Token)node.data;
+		if(nodeTok.getType() == STRINGLITERAL){
+			return stringToHexList(nodeTok.getLit());
+		}
+		else if(nodeTok.getType() == BOOLVAL){
+			
+		}
+		else if(nodeTok.getType() == DIGIT)
+		{
+			
+		}
+		else if(nodeTok.getType() == ID){
+			
+		}
+		return null;
+	}
+	
 	//we found an add, 
-	public String[] coifnvertAdd(SyntaxTree.Node<N> node){
+	public String[] convertAdd(SyntaxTree.Node<N> node){
 		String[] addList;
 		
 		Token leftAddendTok = (Token)node.children.get(0).data;
@@ -101,23 +121,20 @@ public class CodeGen<N> {
 			Token rightAddendTok = (Token)node.children.get(1).data;
 			if(rightAddendTok.getType() == ID){
 				String[] address = lookupConstantAddress(rightAddendTok.getLit());
-				String opCode = {
-						"AD",
+				String[] opCode = {
+						"6D",
 						address[0],
-						address[1],
-						
-				}
-				return adcCode(constAddress);
+						address[1]	
+				};
+				return opCode;
 			}
 			else /*if(addendTok.getType() == DIGIT)*/{
 				String[] address = getNextConstLoc();
-				String[] opCode = {
-						"A9", 
-						"0"+rightAddendTok.getLit(),
-						"8D",
-						address[0],
-						address[1], //can do with XX but whatever for now
-						"6D"
+				int digitVal = Integer.parseInt(rightAddendTok.getLit());
+				String[] opCode = {						
+						"6D",
+						"0"+digitMemLocs[digitVal],
+						"00",
 				};
 				StaticData primInt = new StaticData(address, "", 0, staticTable.size());
 				staticTable.add(primInt);
@@ -143,7 +160,7 @@ public class CodeGen<N> {
 		return sta;
 	}
 	public String[] getNextConstLoc(){
-		String[] address = {"T"+staticTable.size(), "XX");
+		String[] address = {"T"+staticTable.size(), "XX"};
 		return address;
 	}
 	public String[] storeAccum_existingLoc(String memLoc){
@@ -205,7 +222,36 @@ public class CodeGen<N> {
 		}
 		return list;
 	}
+	public void storeDigits(){
+		String[] opCodes = new String[0];
+		String hex;
+		int memLoc = 254;
+		for(int i = 0; i < 10; i++){
+			hex = Integer.toHexString(memLoc);
+			String[] digitOpCodes = {
+					"A9",
+					"0"+i,
+					"8D",
+					hex,
+					"00"
+			};
+			digitMemLocs[i] = hex;
+			
+			memLoc--;
+		}
+		return opCodes;
+	}
 	
+	public String[] storeBooleans(){
+		String[] tHex = stringToHexList("true");
+		String[] fHex = stringToHexList("false");
+		return fHex;
+	}
+	
+	//this would have the effect of dynamic scope
+	//cause if the last time an id was used was in
+	//a previous but non-parent scope, it will return it
+	//need more work on this, just a placeholder for now
 	public String[] lookupConstantAddress(String id){
 		for(int i = 0; i < staticTable.size(); i++){
 			if(staticTable.get(i).var.equals(id)){
@@ -215,4 +261,22 @@ public class CodeGen<N> {
 		return null;
 	}
 	
+	//Takes a string, stores its 00 terminated hex representation
+	//in the env. returns the memory location of the string
+	public String stringToHexList(String str){
+		String[] hexString = new String[str.length()+1];
+		int memStart = heapIndex-(str.length()+1);
+		
+		for(int i = 0; i < str.length(); i++){
+			char c = str.charAt(i);
+			hexString[i] = Integer.toHexString((int)c);
+			runEnv[memStart+i] = hexString[i];
+		}
+		
+		hexString[hexString.length-1] = "00";
+		runEnv[heapIndex] = "00";
+		heapIndex = memStart-1;
+		String memStartHex = Integer.toHexString(memStart);
+		return memStartHex;
+	}
 }
