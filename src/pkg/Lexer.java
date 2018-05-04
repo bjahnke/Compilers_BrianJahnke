@@ -112,7 +112,6 @@ public class Lexer {
 	 -----------------*/
 	public static List<SyntaxTree> lex(String input) {
 		List<Token> result = new ArrayList<Token>();
-		
 		boolean eop = false;
 		String errorMsg = "";
 		String warningMsg = "";
