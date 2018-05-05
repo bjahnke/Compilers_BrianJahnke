@@ -12,17 +12,32 @@ public class CodeGen<N> {
 	public SymbolTable symbolTree;
 	public String[] runEnv = new String[255];
 	public String[] digitMemLocs = new String[10];
+	public String[] boolValMemLocs = new String[2];
 	public List<StaticData> staticTable = new ArrayList<StaticData>();
-	public int opCodeIndex = 0;
+	public int codeIndex = 0;
 	public int heapIndex = 154;
+	public int currentScope = 0;
 	
 	public CodeGen(SymbolTable sT){
 		this.symbolTree = sT;
 		this.ast = sT.ast;
 	}
 	
+	public void processAST(){
+		/*
+		 * if the node is a block, if, or while
+		 * then, get the node number and make that current scope
+		 * also, recall processAST on its children
+		 * 
+		 * else, processProd on current node.
+		 * 
+		 * */
+		
+		
+	}
 	
 	public void processProd(SyntaxTree.Node<N> node){
+		String[] opCodes;
 		if(node.data == ADD){
 			
 		}
@@ -33,7 +48,9 @@ public class CodeGen<N> {
 			
 		}
 		else if(node.data == VAR_DECL){
-			
+			System.out.println("Converting VarDecl to Code");
+			opCodes = convertVarDecl(node);
+			addToRunEnvCode(opCodes);
 		}
 		else if(node.data == ASSIGNMENT_STATEMENT){
 			
@@ -69,16 +86,16 @@ public class CodeGen<N> {
 		
 		String[] varDeclOpCodes = concat(loadAccum_Const("0"), storeAccum_newLoc());
 		String[] tempLoc = {varDeclOpCodes[3], varDeclOpCodes[4]};
-		StaticData staticVar = new StaticData(tempLoc, idTok.getLit(), 0, staticTable.size());
+		StaticData staticVar = new StaticData(tempLoc, idTok.getLit(), currentScope, staticTable.size());
 		staticTable.add(staticVar);
 		return varDeclOpCodes;
 	}
 	
 	public String[] convertAssign(SyntaxTree.Node<N> node){
-		String exprOpCodes = convertExpr(node);
+		String[] exprOpCodes = convertExpr(node);
 		String[] assignOpCodes = {
 				"A9", 
-				"0+getSum(0, node)", 
+				"", 
 				"8D", 
 				"T"/* + get_id_index_from_constants*/, 
 				"XX"
@@ -222,30 +239,20 @@ public class CodeGen<N> {
 		}
 		return list;
 	}
+	
 	public void storeDigits(){
-		String[] opCodes = new String[0];
-		String hex;
-		int memLoc = 254;
-		for(int i = 0; i < 10; i++){
-			hex = Integer.toHexString(memLoc);
-			String[] digitOpCodes = {
-					"A9",
-					"0"+i,
-					"8D",
-					hex,
-					"00"
-			};
-			digitMemLocs[i] = hex;
-			
-			memLoc--;
+		String memLocHex;
+		for(int i = 9; i >= 0; i++){
+			memLocHex = Integer.toHexString(heapIndex);
+			digitMemLocs[i] = memLocHex;
+			runEnv[heapIndex] = "0"+i;
+			heapIndex--;
 		}
-		return opCodes;
 	}
 	
-	public String[] storeBooleans(){
-		String[] tHex = stringToHexList("true");
-		String[] fHex = stringToHexList("false");
-		return fHex;
+	public void storeBooleans(){
+		boolValMemLocs[0] = stringToHexList("true");
+		boolValMemLocs[1] = stringToHexList("false");
 	}
 	
 	//this would have the effect of dynamic scope
@@ -278,5 +285,22 @@ public class CodeGen<N> {
 		heapIndex = memStart-1;
 		String memStartHex = Integer.toHexString(memStart);
 		return memStartHex;
+	}
+	
+	public void addToRunEnvCode(String[] opCode){
+		for(int i = 0; i < opCode.length; i++){
+			runEnv[codeIndex] = opCode[i];
+			codeIndex++;
+		}
+	}
+	
+	public String getBoolLoc(boolean boolval){
+		if(boolval == true){
+			return boolValMemLocs[0];
+		}
+		else if(boolval == false){
+			return boolValMemLocs[1];
+		}
+		return null;
 	}
 }
