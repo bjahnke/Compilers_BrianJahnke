@@ -48,22 +48,15 @@ public class CodeGen<N> {
 	
 	public void processProd(SyntaxTree.Node<N> node){
 		String[] opCodes;
-		if(node.data == ADD){
-			
-		}
-		else if(node.data == COMPARE_EQ){
-			
-		}
-		else if(node.data == COMPARE_NEQ){
-			
-		}
-		else if(node.data == VAR_DECL){
+		if(node.data == VAR_DECL){
 			System.out.println("Converting VarDecl to Code");
 			opCodes = convertVarDecl(node);
 			addToRunEnvCode(opCodes);
 		}
 		else if(node.data == ASSIGNMENT_STATEMENT){
-			
+			String[] idMemLoc = getTermMemLoc(node.children.get(0));
+			SyntaxTree.Node<N> expr = node.children.get(1);
+
 		}
 		else if(node.data == PRINT_STATEMENT){
 			
@@ -102,7 +95,7 @@ public class CodeGen<N> {
 	}
 	
 	public String[] convertAssign(SyntaxTree.Node<N> node){
-		String[] exprOpCodes = convertExpr(node);
+		String[] exprOpCodes = getTermMemLoc(node);
 		String[] assignOpCodes = {
 				"A9", 
 				"", 
@@ -113,25 +106,61 @@ public class CodeGen<N> {
 		return assignOpCodes;	
 	}
 	
-	public String[] convertExpr(SyntaxTree.Node<N> node){
+	public String[] converExpr(SyntaxTree.Node<N> node){
+		String opCode[] = null;
+		if(node.data == COMPARE_EQ){
+			
+		}
+		else if(node.data == COMPARE_NEQ){
+			
+		}
+		else if(node.data == ADD){
+			opCode = convertAdd(node);
+		}
+		else{
+			opCode = getTermMemLoc(node);
+		}
+		return opCode;
+	}
+	
+	public String[] getTermMemLoc(SyntaxTree.Node<N> node){
 		Token nodeTok = (Token)node.data;
 		if(nodeTok.getType() == STRINGLITERAL){
-			return stringToHexList(nodeTok.getLit());
+			String strLitMemLoc = stringToHexList(nodeTok.getLit());
+			String[] codeMemLoc = {strLitMemLoc, "00"};
+			return codeMemLoc;
 		}
 		else if(nodeTok.getType() == BOOLVAL){
-			
+			if(nodeTok.getLit().equals("true")){
+				String[] codeMemLoc = {boolValMemLocs[0], "00"};
+				return codeMemLoc;
+			}
+			else{
+				String[] codeMemLoc = {boolValMemLocs[1], "00"};
+				return codeMemLoc;
+			}
 		}
-		else if(nodeTok.getType() == DIGIT)
-		{
-			
+		else if(nodeTok.getType() == DIGIT){
+			int num = Integer.parseInt(nodeTok.getLit());
+			String[] codeMemLoc = {digitMemLocs[num], "00"};
+			return codeMemLoc;
 		}
 		else if(nodeTok.getType() == ID){
-			
+			StaticData id = getStaticDataById(nodeTok);
+			return id.temp;
 		}
 		return null;
 	}
 	
-	//we found an add, 
+	public String[] convertEq(SyntaxTree.Node<N> node){
+		return null;
+	}
+	
+	public String[] convertNEq(SyntaxTree.Node<N> node){
+		return null;
+	}
+	
+	//we found an add.
 	public String[] convertAdd(SyntaxTree.Node<N> node){
 		String[] addList;
 		
@@ -147,7 +176,7 @@ public class CodeGen<N> {
 		else{
 			Token rightAddendTok = (Token)node.children.get(1).data;
 			if(rightAddendTok.getType() == ID){
-				String[] address = lookupConstantAddress(rightAddendTok.getLit());
+				String[] address = getStaticDataById(rightAddendTok).temp;
 				String[] opCode = {
 						"6D",
 						address[0],
@@ -168,7 +197,7 @@ public class CodeGen<N> {
 				return opCode;
 			}
 		}
-		String[] singleAddCode = new String[""]
+		String[] singleAddCode = new String[0];
 		return null;
 	}
 	
@@ -342,5 +371,24 @@ public class CodeGen<N> {
 			return boolValMemLocs[1];
 		}
 		return null;
+	}
+	
+	/*-----------------|
+	 *                 |
+	 * Print Run Env   |
+	 *                 |
+	 -----------------*/
+	public void printRunEnv(){
+		for(int i = 0; i < runEnv.length; i++){
+			if(runEnv[i].equals("")){
+				System.out.print("00 ");
+			}
+			else{
+				System.out.print(runEnv[i]+" ");
+			}
+			if((i+1) % 8 == 0){
+				System.out.print("\b\n");
+			}
+		}
 	}
 }
