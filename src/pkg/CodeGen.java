@@ -265,15 +265,47 @@ public class CodeGen<N> {
 		boolValMemLocs[1] = stringToHexList("false");
 	}
 	
-	//this is actually fine, because if the scope of the const returned does not match current scope,
-	//then we must must then go to a second step to check that the scope of id is a parent to the current.
-	public StaticData getStaticDataById(String id){
-		for(int i = 0; i < staticTable.size(); i++){
-			if(staticTable.get(i).var.equals(id)){
-				return staticTable.get(i);
+	/*
+	 * Checks the static table for a initialized ids with the same name as the one passed.
+	 * If the static found has the same scope as the current one we are in, 
+	 * then we found the static we want. If the scopes don't match, we need to check
+	 * if the static is in a parent scope of our current scope. Combines the use of the 
+	 * static table and symbol table to only search the symbol table with vars that 
+	 * have been reached by code gen
+	 * */
+	public StaticData getStaticDataById(Token id){
+		for(int i = staticTable.size()-1; i >= 0; i--){
+			StaticData staticAtIndex = staticTable.get(i);
+			if(staticAtIndex.var.equals(id.getLit())){
+				if(staticAtIndex.scope == currentScope){
+					return staticAtIndex;
+				}
+				else{
+					
+					SyntaxTree.Node<N> scopeOfCurrent = this.symbolTree.getScopeByNumber(currentScope, this.symbolTree.root);
+					if(isStaticInScope(id, scopeOfCurrent.parent, staticAtIndex)){
+						return staticAtIndex;
+					}
+				}
 			}
 		}
 		return null;
+	}
+	
+	//verifies that the most recently initialized id found,
+	//but not in the current scope, is in a parent of the current scope
+	public boolean isStaticInScope(Token id, SyntaxTree.Node<N> scope,StaticData staticAtIndex){
+		SyntaxTree.Node<N> scopeOfConst = this.symbolTree.getScopeByNumber(staticAtIndex.scope, this.symbolTree.root);
+		Var foundVar = this.symbolTree.findId_InEntireScope(id, scope);
+		if(foundVar.getscopeNum() == staticAtIndex.scope){
+			 return true;
+		}
+		else if(scope.parent != null){
+			return isStaticInScope(id, scope.parent, staticAtIndex);
+		}
+		else{
+			return false;
+		}
 	}
 	
 	//Takes a string, stores its 00 terminated hex representation
