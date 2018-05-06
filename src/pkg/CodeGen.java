@@ -23,7 +23,7 @@ public class CodeGen<N> {
 		this.ast = sT.ast;
 	}
 	
-	public void processAST(){
+	public void processAST(SyntaxTree.Node<N> node){
 		/*
 		 * if the node is a block, if, or while
 		 * then, get the node number and make that current scope
@@ -32,7 +32,17 @@ public class CodeGen<N> {
 		 * else, processProd on current node.
 		 * 
 		 * */
-		
+		if(node.data == BLOCK || node.data == IF_STATEMENT || node.data == WHILE_STATEMENT){
+			currentScope = node.nodeNum;
+			if(node.hasChildren()){
+				for(SyntaxTree.Node<N> n : node.children){
+					processAST(n);
+				}
+			}
+		}
+		else{
+			processProd(node);
+		}
 		
 	}
 	
@@ -259,10 +269,10 @@ public class CodeGen<N> {
 	//cause if the last time an id was used was in
 	//a previous but non-parent scope, it will return it
 	//need more work on this, just a placeholder for now
-	public String[] lookupConstantAddress(String id){
+	public StaticData getStaticDataById(String id){
 		for(int i = 0; i < staticTable.size(); i++){
 			if(staticTable.get(i).var.equals(id)){
-				return staticTable.get(i).temp;
+				return staticTable.get(i);
 			}
 		}
 		return null;

@@ -59,6 +59,7 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 		sTable.set(v.getSymbolTableIndex(), v);
 	}
 	
+	//
 	public Node<N> getScopeByNumber(int num, Node<N> scope){
 		//if the first scope passed(root) is the num we are looking for
 		if(scope.getNodeNum() == num){
@@ -158,7 +159,7 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 	 * Scope Check     |
 	 *                 |
 	 -----------------*/
-	//take an id token and a scope node, returns node the id was found in
+	//take an id token and a scope node, returns var of the id was found in
 	public Var findId_InEntireScope(Token id, Node<N> scope){
 		Var foundVar = findId_InScopeNode(id, scope);
 		if(foundVar != null){
