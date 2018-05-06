@@ -265,10 +265,8 @@ public class CodeGen<N> {
 		boolValMemLocs[1] = stringToHexList("false");
 	}
 	
-	//this would have the effect of dynamic scope
-	//cause if the last time an id was used was in
-	//a previous but non-parent scope, it will return it
-	//need more work on this, just a placeholder for now
+	//this is actually fine, because if the scope of the const returned does not match current scope,
+	//then we must must then go to a second step to check that the scope of id is a parent to the current.
 	public StaticData getStaticDataById(String id){
 		for(int i = 0; i < staticTable.size(); i++){
 			if(staticTable.get(i).var.equals(id)){
