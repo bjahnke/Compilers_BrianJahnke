@@ -32,7 +32,7 @@ public class CodeGen<N> {
 		 * else, processProd on current node.
 		 * 
 		 * */
-		if(node.data == BLOCK || node.data == IF_STATEMENT || node.data == WHILE_STATEMENT){
+		if(node.data == BLOCK){
 			currentScope = node.nodeNum;
 			if(node.hasChildren()){
 				for(SyntaxTree.Node<N> n : node.children){
@@ -56,10 +56,11 @@ public class CodeGen<N> {
 		else if(node.data == ASSIGNMENT_STATEMENT){
 			String[] idMemLoc = getTermMemLoc(node.children.get(0));
 			SyntaxTree.Node<N> expr = node.children.get(1);
-
+			opCodes = convertExpr(expr);
+			//addToRunEnvCode(opCodes);
 		}
 		else if(node.data == PRINT_STATEMENT){
-			
+			opCodes = convertPrint(node.children.get(0));
 		}
 		else if(node.data == WHILE_STATEMENT){
 			
@@ -106,7 +107,34 @@ public class CodeGen<N> {
 		return assignOpCodes;	
 	}
 	
-	public String[] converExpr(SyntaxTree.Node<N> node){
+	public String[] convertPrint(SyntaxTree.Node<N> node){
+		String[] termMemLoc = getTermMemLoc(node);
+		if(termMemLoc != null){
+			Token nodeTok = (Token)node.data;
+			String[] printOpCodes = {
+				"AC",
+				termMemLoc[0],
+				termMemLoc[1],
+				"A2",
+				"",
+				"FF",
+			};
+			if(nodeTok.getType() == STRINGLITERAL){
+				printOpCodes[4] = "02";
+			}
+			else{
+				printOpCodes[4] = "01";
+			}
+			return printOpCodes;
+		}
+		else{
+			
+		}
+		
+		return null;
+	}
+	
+	public String[] convertExpr(SyntaxTree.Node<N> node){
 		String opCode[] = null;
 		if(node.data == COMPARE_EQ){
 			
@@ -116,6 +144,7 @@ public class CodeGen<N> {
 		}
 		else if(node.data == ADD){
 			opCode = convertAdd(node);
+			opCode[0] = "A9";
 		}
 		else{
 			opCode = getTermMemLoc(node);
@@ -132,11 +161,11 @@ public class CodeGen<N> {
 		}
 		else if(nodeTok.getType() == BOOLVAL){
 			if(nodeTok.getLit().equals("true")){
-				String[] codeMemLoc = {boolValMemLocs[0], "00"};
+				String[] codeMemLoc = {digitMemLocs[0], "00"};
 				return codeMemLoc;
 			}
 			else{
-				String[] codeMemLoc = {boolValMemLocs[1], "00"};
+				String[] codeMemLoc = {digitMemLocs[1], "00"};
 				return codeMemLoc;
 			}
 		}
@@ -152,7 +181,21 @@ public class CodeGen<N> {
 		return null;
 	}
 	
+	public String[] convertComapre(SyntaxTree.Node<N> node){
+		return null;
+	}
+	
 	public String[] convertEq(SyntaxTree.Node<N> node){
+		String[] opCodes = {
+			"AE",
+			"",
+			"",
+			"EC",
+			"",
+			"",
+			"D0",
+			
+		};
 		return null;
 	}
 	
@@ -165,16 +208,19 @@ public class CodeGen<N> {
 		String[] addList;
 		
 		Token leftAddendTok = (Token)node.children.get(0).data;
-		String[] leftAddendCode = {"0"+leftAddendTok.getLit()}; 
+		int leftDigitVal = Integer.parseInt(leftAddendTok.getLit());
+		String[] leftOpCode = {"6D", digitMemLocs[leftDigitVal]}; 
 		
 		//there will only be add productions so we just
 		//have to check if the node has children. If so
 		//then it is an add
 		if(node.hasChildren()){              
 			addList = convertAdd(node.children.get(1));
+			return concat(leftOpCode, addList);
 		}
 		else{
 			Token rightAddendTok = (Token)node.children.get(1).data;
+			String[] rightOpCode;
 			if(rightAddendTok.getType() == ID){
 				String[] address = getStaticDataById(rightAddendTok).temp;
 				String[] opCode = {
@@ -182,23 +228,19 @@ public class CodeGen<N> {
 						address[0],
 						address[1]	
 				};
-				return opCode;
+				rightOpCode = opCode;
 			}
 			else /*if(addendTok.getType() == DIGIT)*/{
-				String[] address = getNextConstLoc();
-				int digitVal = Integer.parseInt(rightAddendTok.getLit());
+				int rightDigitVal = Integer.parseInt(rightAddendTok.getLit());
 				String[] opCode = {						
 						"6D",
-						"0"+digitMemLocs[digitVal],
+						digitMemLocs[rightDigitVal],
 						"00",
 				};
-				StaticData primInt = new StaticData(address, "", 0, staticTable.size());
-				staticTable.add(primInt);
-				return opCode;
+				rightOpCode = opCode;
 			}
+			return concat(leftOpCode, rightOpCode);
 		}
-		String[] singleAddCode = new String[0];
-		return null;
 	}
 	
 	public String[] loadAccum_Const(String num){
