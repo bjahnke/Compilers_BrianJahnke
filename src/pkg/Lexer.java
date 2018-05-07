@@ -110,7 +110,7 @@ public class Lexer {
 	 * Lexer           |
 	 *                 |
 	 -----------------*/
-	public static List<SyntaxTree> lex(String input) {
+	public static List<Token> lex(String input) {
 		List<Token> result = new ArrayList<Token>();
 		boolean eop = false;
 		String errorMsg = "";
@@ -127,7 +127,6 @@ public class Lexer {
 			if(i == 0 || eop){
 				if(i != input.length()-1)
 				{
-					System.out.println("Lexing Program " + progNum);
 					progTokList.clear();
 					eop = false;
 				}
@@ -216,12 +215,6 @@ public class Lexer {
 					progErrorCount++;
 					errorList.add(errorMsg);
 			}
-			if(i == input.length()-1  && result.get(result.size()-1).getType() != EOP) {
-				warningMsg = "Warning: $ at file end not present. Added Automatically to prevent failure.";
-				newTok = new Token(EOP, "$", lineNum); 
-				eop = true;
-			}
-			
 			if(newTok != null){
 				result.add(newTok);
 				progTokList.add(newTok);
@@ -231,14 +224,10 @@ public class Lexer {
 						System.out.println("Lex completed with " + progErrorCount + " error(s)\n"
 								+ "Parse not ran on program.\n");
 						errorInProg = false;
+						result = null;
 						progErrorCount = 0;
 					}
 					else{
-						System.out.println("Lex completed successfully\n\nParsing Program " + progNum);
-						SyntaxTree validParse = Parser.parse(progTokList);
-						if(validParse != null){
-							parsedProgsList.add(validParse);
-						}
 						progTokList.clear();
 					}
 					progNum++;
@@ -253,7 +242,7 @@ public class Lexer {
 			TempMain.verbosePrint(warningMsg);
 			warningMsg = "";
 		}
-		return parsedProgsList;
+		return result;
 	}
 	
 /*-----------------|

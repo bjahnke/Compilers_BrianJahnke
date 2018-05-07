@@ -48,26 +48,14 @@ public class Parser {
 				System.out.println("\n");
 			//}
 			p.pTree.initAndGenAST();
-			List<Var> list = new ArrayList<Var>();
-			SymbolTable sT = new SymbolTable(list, p.pTree.ast);
-			if(sT.buildSymbolTable(sT.ast.root)){
-				SymbolTable.printSymbolTable();
-				sT.symbolTableWarnings();
-				return sT;
-			}
-			else{
-				System.out.println("Program " + Lexer.progNum + " Symbol Table:"
-						+ "\nNot produced due to an error in semantic analysis.\n");
-				return null;
-			}
-			
+			return p.pTree.ast;
 		}
 		else{
-				System.out.println("Parse failed\n");
-				if(TempMain.isVerboseOnLP){
-					System.out.println("CST skipped due to parse failure\n");
-				}
-				return null;
+			System.out.println("Parse failed\n");
+			if(TempMain.isVerboseOnLP){
+				System.out.println("CST skipped due to parse failure\n");
+			}
+			return null;
 		}
 	}
 	

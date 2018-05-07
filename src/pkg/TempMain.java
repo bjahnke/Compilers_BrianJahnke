@@ -1,24 +1,95 @@
 package pkg;
 
+import static pkg.TokenType.EOP;
+
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
 import java.util.InputMismatchException;
 import java.util.List;
 import java.util.Scanner;
 
 public class TempMain {
-	public static boolean isVerboseOnLP; 
+	public static boolean isVerboseOnLP;
+	public static int progCount = 1;
 	
 	public static void main(String[] args) {
 		System.out.println("TempMain");
 		File testFile = getTestFile();
 		isVerboseOnLP = toggleVerbose();
 		String cString = scanFileReturnCharString(testFile);
-		List<SyntaxTree> progsList = Lexer.lex(cString);
-		//CodeGen.convertProgs(progList);
+		List<String> progStrings = seperatePrograms(cString);
+		//Compilation Start
+		compileProgram(progStrings);
 		System.out.println("\nHave nice day.");
 	}
 	
+	public static void compileProgram(List<String> pStrList){
+		List<Token> progTokList;
+		SyntaxTree validParse;
+		for(String pString : pStrList){
+		//Lexer
+			System.out.println("Lexing Program " + progCount);
+			progTokList = Lexer.lex(pString);
+			
+			if(progTokList != null){
+		//Parser
+				System.out.println("Lex completed successfully\n\nParsing Program " + progCount);
+				validParse = Parser.parse(progTokList);
+				if(validParse != null){
+		//Semantic Analysis
+					SymbolTable symbolTable = runSymbolTable(validParse);
+					if(symbolTable != null){
+		//Code Generation
+						CodeGen cG = runCodeGen(symbolTable);
+						if(cG != null){
+							System.out.println("Program " + progCount + " compiled successfully.");
+						}
+					}
+				}
+			}
+			progCount++;
+		}
+	}
+	public static List<String> seperatePrograms(String codeString){
+		List<String> cStrList = new ArrayList<String>();
+		String progString = "";
+		for(int i = 0; i < codeString.length(); i++){
+			progString += codeString.charAt(i);
+			if(codeString.charAt(i) == '$'){
+				cStrList.add(progString);
+				progString = "";
+			}
+			else if(i == codeString.length()-1  && progString.length() > 0) {
+				System.out.println("Warning: $ at file end not present. Added Automatically to prevent failure.");
+				progString += "$";
+				cStrList.add(progString);
+			}
+		}
+		return cStrList;
+	}
+	
+	public static SymbolTable runSymbolTable(SyntaxTree pList){
+		List<Var> list = new ArrayList<Var>();
+		SymbolTable sT = new SymbolTable(list, pList);
+		if(sT.buildSymbolTable(sT.ast.root)){
+			SymbolTable.printSymbolTable();
+			sT.symbolTableWarnings();
+			return sT;
+		}
+		else{
+			System.out.println("Program " + progCount + " Symbol Table:"
+					+ "\nNot produced due to an error in semantic analysis.\n");
+			return null;
+		}
+	}
+	
+	public static CodeGen runCodeGen(SymbolTable sT){
+		CodeGen cGen = new CodeGen(sT);
+		cGen.startCodeGen();
+		cGen.printRunEnv();
+		return null;
+	}
 	
 	/*------------------------|
 	 *                        |
