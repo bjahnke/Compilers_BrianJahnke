@@ -27,7 +27,12 @@ public class CodeGen<N> {
 	}
 	public void startCodeGen(){
 		processBlock(symbolTree.ast.root);
-		runEnv[codeIndex] = "00";
+		int i = codeIndex;
+		while(i <= heapIndex){
+			runEnv[i] = "00";
+			i++;
+		}
+		backPatch();
 	}
 	public void processBlock(SyntaxTree.Node<N> node){
 		/*
@@ -64,7 +69,7 @@ public class CodeGen<N> {
 		}
 		else if(node.data == ASSIGNMENT_STATEMENT){
 			opCodes = convertAssign(node);
-			//addToRunEnvCode(opCodes);
+			addToRunEnvCode(opCodes);
 		}
 		else if(node.data == PRINT_STATEMENT){
 			opCodes = convertPrint(node.children.get(0));
@@ -80,17 +85,28 @@ public class CodeGen<N> {
 	
 	/*-----------------|
 	 *                 |
-	 * Code Generation |
+	 * Code Generation |----------------------------------------------------------
 	 *     Functions   |
+	 -----------------*/
+	/*-----------------|
+	 *      !          |
+	 * VarDecl Code Gen|
+	 *                 |
 	 -----------------*/
 	public String[] convertVarDecl(SyntaxTree.Node<N> declNode){
 		SyntaxTree.Node<N> idNode = declNode.children.get(1);
 		Token idTok = (Token)idNode.data;
 		StaticData staticVar = this.createNewConstant(idTok.getLit());
-		String[] varDeclOpCodes = concat(loadAccum_Const("0"), staticVar.temp);
+		String[] storeVar = {"8D", staticVar.temp[0], staticVar.temp[1]};
+		String[] varDeclOpCodes = concat(loadAccum_Const("0"), storeVar);
 		return varDeclOpCodes;
 	}
 	
+	/*-----------------|
+	 *      !          |
+	 * Assign Code Gen |
+	 *                 |
+	 -----------------*/
 	public String[] convertAssign(SyntaxTree.Node<N> node){
 		String[] idMemLoc = getTermMemLoc(node.children.get(0));
 		SyntaxTree.Node<N> expr = node.children.get(1);
@@ -103,9 +119,13 @@ public class CodeGen<N> {
 				idMemLoc[0],
 				idMemLoc[1]
 		};
-		return assignOpCodes;	
+		return concat(exprOpCodes, assignOpCodes);
 	}
-	
+	/*-----------------|
+	 *       !         |
+	 * Print Code Gen  |
+	 *                 |
+	 -----------------*/
 	public String[] convertPrint(SyntaxTree.Node<N> node){
 		String[] exprOpCode = convertExpr(node);
 		String[] printOpCode = {
@@ -121,8 +141,10 @@ public class CodeGen<N> {
 			if(nodeTok.getType() == STRINGLITERAL){
 				printOpCode[4] = "02";
 			}
-		}	
-		printOpCode = concat(exprOpCode, printOpCode);
+		}
+		if(node.data == ADD){
+			printOpCode = concat(exprOpCode, printOpCode);
+		}
 		return printOpCode;
 	}		
 	
@@ -134,8 +156,8 @@ public class CodeGen<N> {
 		else if(node.data == ADD){
 			opCode = convertAdd(node);
 			opCode[0] = "AD";
-			StaticData tempStore = createNewConstant("temp");
-			opCode = concat(opCode, tempStore.temp);
+			String[] tempStore = {"8D", this.createNewTempLoc().temp[0], "XX"};
+			opCode = concat(opCode, tempStore);
 		}
 		else{
 			opCode = getTermMemLoc(node);
@@ -144,7 +166,11 @@ public class CodeGen<N> {
 	}
 	
 
-	
+	/*-----------------|
+	 *        !        |
+	 * Compare Code Gen|
+	 *                 |
+	 -----------------*/
 	public String[] convertCompare(SyntaxTree.Node<N> node){
 		String[] opCodes = null;
 		String[] leftExprCode = this.convertExpr(node.children.get(0));
@@ -153,11 +179,7 @@ public class CodeGen<N> {
 				leftExprCode[leftExprCode.length-2],
 				leftExprCode[leftExprCode.length-1]
 		};
-		if(node.children.get(0).data == ADD){
-			leftCode = concat(leftExprCode, leftCode);
-		}
-		
-		
+
 		String[] rightExprCode = this.convertExpr(node.children.get(1));
 		String[] tempStorage = this.createNewTempLoc().temp;
 		//copy the memory location to a t(n'th) temp location, then compare x reg with t
@@ -177,8 +199,6 @@ public class CodeGen<N> {
 		}
 		
 		if(node.data == COMPARE_NEQ){
-			String[] tempMemLoc = this.storeAccum_newLoc();
-			String jumpTemp = this.createNewJump().temp;
 			String[] neqOpCode = {
 					"A9","00",    //load accum with 0
 					"D0","02",    //jump over next intruct if not equal
@@ -189,7 +209,6 @@ public class CodeGen<N> {
 					//^if original compares were not equal, accum and x reg would be equal meaning 
 					//the compare would be considered true. if they are equal, accum and x reg would 
 					//be unequal, and the compare would be considered false.
-			
 			};
 			rightCode = concat(rightCode, neqOpCode);
 		}
@@ -207,17 +226,11 @@ public class CodeGen<N> {
 		return opCodes;
 	}
 	
-	public String[] convertEq(SyntaxTree.Node<N> node){
-		
-		
-		return null;
-	}
-	
-	public String[] convertNEq(SyntaxTree.Node<N> node){
-		return null;
-	}
-	
-	//we found an add.
+	/*-----------------|
+	 *       !         |
+	 * Add Code Gen    |
+	 *                 |
+	 -----------------*/
 	public String[] convertAdd(SyntaxTree.Node<N> node){
 		String[] addList;
 		
@@ -289,7 +302,7 @@ public class CodeGen<N> {
 	
 	//creates new constant, adds adds it to constants list, and returns it
 	public StaticData createNewConstant(String name){
-		String[] loc = storeAccum_newLoc();
+		String[] loc = {"T"+staticTable.size(), "XX"};
 		StaticData constant = new StaticData(loc, name, currentScope, staticTable.size());
 		staticTable.add(constant);
 		return constant;
@@ -307,7 +320,7 @@ public class CodeGen<N> {
 		String[] loc = {"T"+tempOffset, "XX"};
 		StaticData tempConst = new StaticData(loc, "temp", currentScope, tempOffset);
 		tempTable.add(tempConst);
-		return null;
+		return tempConst;
 	}
 	
 	/*-----------------|
@@ -423,6 +436,20 @@ public class CodeGen<N> {
 		}
 	}
 	
+	public StaticData getConstByTemp(String temp){
+		for(StaticData sData : tempTable){
+			if(sData.temp[0].equals(temp)){
+				return sData;
+			}
+		}
+		for(StaticData sData : staticTable){
+			if(sData.temp[0].equals(temp)){
+				return sData;
+			}
+		}
+		return null;
+	}
+	
 	/*-----------------|
 	 *                 |
 	 * Hex Conversion/ |
@@ -464,6 +491,17 @@ public class CodeGen<N> {
 		}
 	}
 	
+	public void backPatch(){
+		for(int i = 0; i < runEnv.length; i++){
+			if(runEnv[i].equals("XX")){
+				int loc = (codeIndex+1) + this.getConstByTemp(runEnv[i-1]).offset;
+				String hexLoc = Integer.toHexString(loc);
+				runEnv[i-1] = hexLoc;
+				runEnv[i] = "00";
+			}
+		}
+	}
+	
 	/*-----------------|
 	 *                 |
 	 * Print Run Env   |
@@ -471,13 +509,8 @@ public class CodeGen<N> {
 	 -----------------*/
 	public void printRunEnv(){
 		for(int i = 0; i < this.runEnv.length; i++){
-			if(this.runEnv[i] == null){
-				System.out.print("00 ");
-			}
-			else{
-				System.out.print(this.runEnv[i]+" ");
-			}
-			if((i+1) % 5 == 0){
+			System.out.print(this.runEnv[i]+" ");
+			if((i+1) % 8 == 0){
 				System.out.print("\n");
 			}
 		}
