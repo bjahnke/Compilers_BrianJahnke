@@ -3,11 +3,10 @@ package pkg;
 public class JumpData {
 	protected final String temp;
 	protected final int dist;
-	protected final int indexLoc;
+	protected int indexLoc;
 	
-	public JumpData(String t, int d, int iL){
+	public JumpData(String t){
 		this.temp = t;
-		this.dist = d;
-		this.indexLoc = iL;
+		this.dist = -1;
 	}
 }

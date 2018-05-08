@@ -13,10 +13,12 @@ public class CodeGen<N> {
 	public String[] runEnv = new String[96];
 	public String[] digitMemLocs = new String[10];
 	public List<JumpData> jumpTable = new ArrayList<JumpData>();
-	public List<StaticData> staticTable = new ArrayList<StaticData>(2); //first 2 locs are reserved for comparison
+	public List<StaticData> staticTable = new ArrayList<StaticData>(); //first 2 locs are reserved for comparison
+	public List<StaticData> tempTable = new ArrayList<StaticData>();
 	public int codeIndex = 0;
 	public int heapIndex = 95;
 	public int currentScope = 0;
+	public int previousScope = -1;
 	
 	public CodeGen(SymbolTable<N> sT){
 		this.symbolTree = sT;
@@ -24,10 +26,10 @@ public class CodeGen<N> {
 		storeDigits();
 	}
 	public void startCodeGen(){
-		processAST(symbolTree.ast.root);
+		processBlock(symbolTree.ast.root);
 		runEnv[codeIndex] = "00";
 	}
-	public void processAST(SyntaxTree.Node<N> node){
+	public void processBlock(SyntaxTree.Node<N> node){
 		/*
 		 * if the node is a block, if, or while
 		 * then, get the node number and make that current scope
@@ -40,9 +42,12 @@ public class CodeGen<N> {
 			currentScope = node.nodeNum;
 			if(node.hasChildren()){
 				for(SyntaxTree.Node<N> n : node.children){
-					this.processAST(n);
+					this.processBlock(n);
 				}
 			}
+			int swap = currentScope;
+			currentScope = previousScope;
+			previousScope = swap;
 		}
 		else{
 			processProd(node);
@@ -66,10 +71,10 @@ public class CodeGen<N> {
 			this.addToRunEnvCode(opCodes);
 		}
 		else if(node.data == WHILE_STATEMENT){
-			
+			//if the "if" statement is true first time, c
 		}	
 		else if(node.data == IF_STATEMENT){
-			
+			//if the if statement is true, call processBlock
 		}
 	}
 	
@@ -95,8 +100,8 @@ public class CodeGen<N> {
 				"",
 				"",
 				"8D", 
-				"T"/* + get_id_index_from_constants*/, 
-				"XX"
+				idMemLoc[0],
+				idMemLoc[1]
 		};
 		return assignOpCodes;	
 	}
@@ -143,37 +148,54 @@ public class CodeGen<N> {
 
 	
 	public String[] convertCompare(SyntaxTree.Node<N> node){
-		String[] leftExprCode = this.convertExpr(node.children.get(0));
-		String[] rightExprCode = this.convertExpr(node.children.get(1));
 		String[] opCodes = null;
+		String[] leftExprCode = this.convertExpr(node.children.get(0));
 		String[] partialLeftCode = {
 				"AE",
 				leftExprCode[leftExprCode.length-2],
 				leftExprCode[leftExprCode.length-1]
 		};
-		String[] partialRightCode = {
-				"EC",
-				rightExprCode[rightExprCode.length-2],
-				rightExprCode[rightExprCode.length-1]
-		};
 		if(node.children.get(0).data == ADD){
 			leftExprCode = concat(leftExprCode, partialLeftCode);
 		}
+		
+		
+		String[] rightExprCode = this.convertExpr(node.children.get(1));
+		String[] tempStorage = this.createNewTempLoc().temp;
+		String[] partialRightCode = {
+				"AD",
+				rightExprCode[rightExprCode.length-2],
+				rightExprCode[rightExprCode.length-1],
+				"8D",
+				tempStorage[0],
+				tempStorage[1],
+				"EC",
+				tempStorage[0],
+				tempStorage[1]		
+		};
 		if(node.children.get(1).data == ADD){
 			rightExprCode = concat(rightExprCode, partialRightCode);
 		}
+		
 		if(node.data == COMPARE_NEQ){
 			String[] tempMemLoc = this.storeAccum_newLoc();
+			String[] neqTempLoc = this.setLeftDirectCompare().temp; //gets a temp location to store accum for NEQ
+			String jumpTemp = this.createNewJump().temp;
 			String[] neqOpCode = {
-					"A9","00","D0","02",
-					"A9","01","A2","00",
-					"8D","","",
-					
+					"A9","00",    //load accum with 0
+					"D0","02",    //jump over next intruct if not equal
+					"A9","01",    //load accum with 1
+					"A2","00",    //load x reg with 0
+					"8D",neqTempLoc[0],neqTempLoc[1], //store accum to temp memory loc
+					"EC",neqTempLoc[0],neqTempLoc[1], 
+					//^if original compares were not equal, accum and x reg would be equal meaning 
+					//the compare would be considered true. if they are equal, accum and x reg would 
+					//be unequal, and the compare would be considered false.
+			
 			};
 		}
-		else if(node.data == COMPARE_EQ){
+		//condition fulfilled? store true. condition not fulfilled? store false.
 			opCodes = concat(leftExprCode, rightExprCode);
-		}
 		return opCodes;
 	}
 	
@@ -251,6 +273,12 @@ public class CodeGen<N> {
 		return null;
 	}
 	
+	public JumpData createNewJump(){
+		JumpData jData = new JumpData("J"+jumpTable.size());
+		jumpTable.add(jData);
+		return jData;
+	}
+	
 	//creates new constant, adds adds it to constants list, and returns it
 	public StaticData createNewConstant(String name){
 		String[] loc = storeAccum_newLoc();
@@ -259,20 +287,19 @@ public class CodeGen<N> {
 		return constant;
 	}
 	
-	//creats static stores at 0th position in const list
-	public StaticData createLeftCompareTemp(){
-		String[] loc = {"8D","T0","XX"};
-		StaticData tempConst = new StaticData(loc, "temp", currentScope, 0);
-		staticTable.set(0, tempConst);
-		return tempConst;
-	}
-		
-	//creates static, stores at 1th pos in const list
-	public StaticData createRightCompareTemp(){
-		String[] loc = {"8D","T1","XX"};
-		StaticData tempConst = new StaticData(loc, "temp", currentScope, 1);
-		staticTable.set(1, tempConst);
-		return tempConst;
+	//anything farther than a direct comparison becomes boolval comparison
+	//want to save these separately because we don't want them to be overwriten by other 
+	//direct comparisons, <---haha this is wrong. I thought I would only need 4 values
+	//with this idea but that wrong.
+	
+	//WHAT I NEED: n pairs of temp storage for each nested compare there is. <--- no just n locs, x reg helps us out
+	//Every time convertCompare is called, we allocate one more memory location as a temp storage value.
+	public StaticData createNewTempLoc(){
+		int tempOffset = staticTable.size()+tempTable.size();
+		String[] loc = {"T"+tempOffset, "XX"};
+		StaticData tempConst = new StaticData(loc, "temp", currentScope, tempOffset);
+		tempTable.add(tempConst);
+		return null;
 	}
 	
 	/*-----------------|
@@ -323,13 +350,15 @@ public class CodeGen<N> {
 		return null;
 	}
 	
+	
+
 	public String[] getBoolvalMemLoc(Token boolTok){
 		if(boolTok.getLit().equals("true")){
-			String[] codeMemLoc = {digitMemLocs[0], "00"};
+			String[] codeMemLoc = {digitMemLocs[1], "00"};
 			return codeMemLoc;
 		}
 		else if(boolTok.getLit().equals("false")){
-			String[] codeMemLoc = {digitMemLocs[1], "00"};
+			String[] codeMemLoc = {digitMemLocs[0], "00"};
 			return codeMemLoc;
 		}
 		else return null;
