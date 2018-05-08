@@ -97,8 +97,8 @@ public class CodeGen<N> {
 		String[] exprOpCodes = convertExpr(expr);
 		String[] assignOpCodes = {
 				"AD", 
-				"",
-				"",
+				exprOpCodes[exprOpCodes.length-2],
+				exprOpCodes[exprOpCodes.length-1],
 				"8D", 
 				idMemLoc[0],
 				idMemLoc[1]
@@ -108,23 +108,21 @@ public class CodeGen<N> {
 	
 	public String[] convertPrint(SyntaxTree.Node<N> node){
 		String[] exprOpCode = convertExpr(node);
-		String[] printOpCode = new String[50];
-		int l = 0;
+		String[] printOpCode = {
+				"AC", 
+				exprOpCode[exprOpCode.length-2],
+				exprOpCode[exprOpCode.length-1],
+				"A2",
+				"01",
+				"FF"
+		};
 		if(!node.hasChildren()){
 			Token nodeTok = (Token)node.data;
 			if(nodeTok.getType() == STRINGLITERAL){
-				//printOpCode[l+2] = "02";
+				printOpCode[4] = "02";
 			}
 		}	
-		for(int i = 0; i < exprOpCode.length; i++){
-			printOpCode[i] = exprOpCode[i];
-		}
-		printOpCode[l+1] = "AC";
-		printOpCode[l+2] = staticTable.get(staticTable.size()-1).temp[1];
-		printOpCode[l+3] = staticTable.get(staticTable.size()-1).temp[2];
-		printOpCode[l+4] = "A2";
-		printOpCode[l+5] = "01";
-		printOpCode[l+6] = "FF";
+		printOpCode = concat(exprOpCode, printOpCode);
 		return printOpCode;
 	}		
 	
@@ -150,19 +148,20 @@ public class CodeGen<N> {
 	public String[] convertCompare(SyntaxTree.Node<N> node){
 		String[] opCodes = null;
 		String[] leftExprCode = this.convertExpr(node.children.get(0));
-		String[] partialLeftCode = {
+		String[] leftCode = {
 				"AE",
 				leftExprCode[leftExprCode.length-2],
 				leftExprCode[leftExprCode.length-1]
 		};
 		if(node.children.get(0).data == ADD){
-			leftExprCode = concat(leftExprCode, partialLeftCode);
+			leftCode = concat(leftExprCode, leftCode);
 		}
 		
 		
 		String[] rightExprCode = this.convertExpr(node.children.get(1));
 		String[] tempStorage = this.createNewTempLoc().temp;
-		String[] partialRightCode = {
+		//copy the memory location to a t(n'th) temp location, then compare x reg with t
+		String[] rightCode = {
 				"AD",
 				rightExprCode[rightExprCode.length-2],
 				rightExprCode[rightExprCode.length-1],
@@ -174,28 +173,37 @@ public class CodeGen<N> {
 				tempStorage[1]		
 		};
 		if(node.children.get(1).data == ADD){
-			rightExprCode = concat(rightExprCode, partialRightCode);
+			rightCode = concat(rightExprCode, rightCode);
 		}
 		
 		if(node.data == COMPARE_NEQ){
 			String[] tempMemLoc = this.storeAccum_newLoc();
-			String[] neqTempLoc = this.setLeftDirectCompare().temp; //gets a temp location to store accum for NEQ
 			String jumpTemp = this.createNewJump().temp;
 			String[] neqOpCode = {
 					"A9","00",    //load accum with 0
 					"D0","02",    //jump over next intruct if not equal
 					"A9","01",    //load accum with 1
 					"A2","00",    //load x reg with 0
-					"8D",neqTempLoc[0],neqTempLoc[1], //store accum to temp memory loc
-					"EC",neqTempLoc[0],neqTempLoc[1], 
+					"8D",tempStorage[0],tempStorage[1], //store accum to temp memory loc
+					"EC",tempStorage[0],tempStorage[1], 
 					//^if original compares were not equal, accum and x reg would be equal meaning 
 					//the compare would be considered true. if they are equal, accum and x reg would 
 					//be unequal, and the compare would be considered false.
 			
 			};
+			rightCode = concat(rightCode, neqOpCode);
 		}
 		//condition fulfilled? store true. condition not fulfilled? store false.
-			opCodes = concat(leftExprCode, rightExprCode);
+		String[] trueLoc = this.getBoolvalMemLoc(true);
+		String[] falseLoc = this.getBoolvalMemLoc(false);
+		String[] lastPortion = {
+				"AD", falseLoc[0], falseLoc[1], //load false's location
+				"D0", "03",        //if false then jump to false storage
+				"AD", trueLoc[0], trueLoc[1],   //load true's location
+				"8D", tempStorage[0], tempStorage[1]	//store whatever was loaded in accum to temp
+		};
+		rightCode = concat(rightCode, lastPortion);
+		opCodes = concat(leftCode, rightCode);
 		return opCodes;
 	}
 	
@@ -364,6 +372,14 @@ public class CodeGen<N> {
 		else return null;
 	}
 	
+	public String[] getBoolvalMemLoc(boolean boolval){
+		if(boolval){
+			return new String[]{digitMemLocs[1], "00"};
+		}
+		else{
+			return new String[]{digitMemLocs[0], "00"};
+		}
+	}
 	
 	/*
 	 * Checks the static table for a initialized ids with the same name as the one passed.
