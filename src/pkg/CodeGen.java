@@ -78,7 +78,7 @@ public class CodeGen<N> {
 		else if(node.data == WHILE_STATEMENT){
 			opCodes = convertWhile(node.children.get(0));
 			processBlock(node.children.get(1));
-			//String[] branchUn = this.branchUnconditionally(memLoc);
+			ifbackPatchJump();
 		}	
 		else if(node.data == IF_STATEMENT){
 			opCodes = convertIf(node.children.get(0));
@@ -312,7 +312,17 @@ public class CodeGen<N> {
 	 -----------------*/
 	
 	public String[] convertWhile(SyntaxTree.Node<N> node){
-		return null;
+		String[] exprOpCodes = this.convertExpr(node);
+		this.addToRunEnvCode(exprOpCodes);
+		String jumpTemp = this.createNewJump().temp;
+		String[] bucOpCode = {
+				"A9", "00",
+				"8D", "", "",
+				"A2", "01",
+				"EC", "", "",
+				"D0", jumpTemp
+		};
+		return bucOpCode;
 	}
 	
 	/*-----------------|
@@ -332,12 +342,6 @@ public class CodeGen<N> {
 	public String[] getNextConstLoc(){
 		String[] address = {"T"+staticTable.size(), "XX"};
 		return address;
-	}
-	
-	//takes in a location returns code for unconditional jump to that memory location
-	public String[] branchUnconditionally(String memLoc){
-		//TODO code it
-		return null;
 	}
 	
 	public JumpData createNewJump(){
@@ -362,7 +366,16 @@ public class CodeGen<N> {
 	//WHAT I NEED: n pairs of temp storage for each nested compare there is. <--- no just n locs, x reg helps us out
 	//Every time convertCompare is called, we allocate one more memory location as a temp storage value.
 	public StaticData createNewTempLoc(){
-		int tempOffset = staticTable.size()+tempTable.size();
+		int tempOffset = 0;
+		if(tempTable.isEmpty()){
+			tempOffset = staticTable.get(staticTable.size()-1).offset+1;
+		}
+		else if(staticTable.size()+tempTable.size() == tempTable.get(tempTable.size()-1).offset+1){
+			tempOffset = tempTable.get(tempTable.size()-1).offset+1;
+		}
+		else if(staticTable.size()+tempTable.size() != tempTable.get(tempTable.size()-1).offset+1){
+			
+		}
 		String[] loc = {"T"+tempOffset, "XX"};
 		StaticData tempConst = new StaticData(loc, "temp", currentScope, tempOffset);
 		tempTable.add(tempConst);
