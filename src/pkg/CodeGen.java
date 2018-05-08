@@ -13,7 +13,7 @@ public class CodeGen<N> {
 	public String[] runEnv = new String[96];
 	public String[] digitMemLocs = new String[10];
 	public List<JumpData> jumpTable = new ArrayList<JumpData>();
-	public List<StaticData> staticTable = new ArrayList<StaticData>();
+	public List<StaticData> staticTable = new ArrayList<StaticData>(2);
 	public int codeIndex = 0;
 	public int heapIndex = 95;
 	public int currentScope = 0;
@@ -73,18 +73,6 @@ public class CodeGen<N> {
 		}
 	}
 	
-	public void processType(SyntaxTree.Node<N> node){
-		if(node.data == INT){
-			
-		}
-		if(node.data == STRING){
-			
-		}
-		if(node.data == BOOLEAN){
-			
-		}
-	}
-	
 	/*-----------------|
 	 *                 |
 	 * Code Generation |
@@ -93,18 +81,15 @@ public class CodeGen<N> {
 	public String[] convertVarDecl(SyntaxTree.Node<N> declNode){
 		SyntaxTree.Node<N> idNode = declNode.children.get(1);
 		Token idTok = (Token)idNode.data;
-		
-		String[] varDeclOpCodes = concat(loadAccum_Const("0"), storeAccum_newLoc());
-		String[] tempLoc = {varDeclOpCodes[3], varDeclOpCodes[4]};
-		StaticData staticVar = new StaticData(tempLoc, idTok.getLit(), currentScope, staticTable.size());
-		staticTable.add(staticVar);
+		StaticData staticVar = this.createNewConstant(idTok.getLit());
+		String[] varDeclOpCodes = concat(loadAccum_Const("0"), staticVar.temp);
 		return varDeclOpCodes;
 	}
 	
 	public String[] convertAssign(SyntaxTree.Node<N> node){
 		String[] idMemLoc = getTermMemLoc(node.children.get(0));
 		SyntaxTree.Node<N> expr = node.children.get(1);
-		String[] exprOpCodes = convertExpr(node);
+		String[] exprOpCodes = convertExpr(expr);
 		String[] assignOpCodes = {
 				"AD", 
 				"",
@@ -118,24 +103,14 @@ public class CodeGen<N> {
 	
 	public String[] convertPrint(SyntaxTree.Node<N> node){
 		String[] exprOpCode = convertExpr(node);
-		String[] printOpCode = null;
+		String[] printOpCode = new String[50];
 		int l = 0;
-		//printOpCode[0] = "AC";
 		if(!node.hasChildren()){
 			Token nodeTok = (Token)node.data;
 			if(nodeTok.getType() == STRINGLITERAL){
 				//printOpCode[l+2] = "02";
 			}
-		}
-		if(node.data == ADD){
-			String[] storeAdd = storeAccum_newLoc();
-			StaticData tempStore = new StaticData(storeAdd, "temp", currentScope, staticTable.size());
-			staticTable.add(tempStore);
-			exprOpCode = concat(exprOpCode, storeAdd);
-			l = exprOpCode.length-1;
-			printOpCode = new String[exprOpCode.length+6];
-		}
-			
+		}	
 		for(int i = 0; i < exprOpCode.length; i++){
 			printOpCode[i] = exprOpCode[i];
 		}
@@ -156,6 +131,8 @@ public class CodeGen<N> {
 		else if(node.data == ADD){
 			opCode = convertAdd(node);
 			opCode[0] = "AD";
+			StaticData tempStore = createNewConstant("temp");
+			opCode = concat(opCode, tempStore.temp);
 		}
 		else{
 			opCode = getTermMemLoc(node);
@@ -166,31 +143,36 @@ public class CodeGen<N> {
 
 	
 	public String[] convertCompare(SyntaxTree.Node<N> node){
-		String[] leftExprCode;
-		String[] rightExprCode;
+		String[] leftExprCode = this.convertExpr(node.children.get(0));
+		String[] rightExprCode = this.convertExpr(node.children.get(1));
 		String[] opCodes = null;
-		if(node.data == COMPARE_EQ){
-			String[] eqOpCodes = {
-					"AE",
-					"",
-					"",
-					"EC",
-					"",
-					"",
-					"D0",
-					"",//j0
-				};
-			opCodes = eqOpCodes;
+		String[] partialLeftCode = {
+				"AE",
+				leftExprCode[leftExprCode.length-2],
+				leftExprCode[leftExprCode.length-1]
+		};
+		String[] partialRightCode = {
+				"EC",
+				rightExprCode[rightExprCode.length-2],
+				rightExprCode[rightExprCode.length-1]
+		};
+		if(node.children.get(0).data == ADD){
+			leftExprCode = concat(leftExprCode, partialLeftCode);
 		}
-		else if(node.data == COMPARE_NEQ){
-			String[] neqOpCodes = {
-					""
+		if(node.children.get(1).data == ADD){
+			rightExprCode = concat(rightExprCode, partialRightCode);
+		}
+		if(node.data == COMPARE_NEQ){
+			String[] tempMemLoc = this.storeAccum_newLoc();
+			String[] neqOpCode = {
+					"A9","00","D0","02",
+					"A9","01","A2","00",
+					"8D","","",
+					
 			};
-			opCodes = neqOpCodes;
 		}
-		if(node.children.size() > 1){
-			leftExprCode = convertExpr(node.children.get(0));
-			rightExprCode = convertExpr(node.children.get(1));
+		else if(node.data == COMPARE_EQ){
+			opCodes = concat(leftExprCode, rightExprCode);
 		}
 		return opCodes;
 	}
@@ -267,6 +249,14 @@ public class CodeGen<N> {
 	public String[] branchUnconditionally(String memLoc){
 		//TODO code it
 		return null;
+	}
+	
+	//creates new constant, adds adds it to constants list, and returns it
+	public StaticData createNewConstant(String name){
+		String[] loc = storeAccum_newLoc();
+		StaticData constant = new StaticData(loc, name, currentScope, staticTable.size());
+		staticTable.add(constant);
+		return constant;
 	}
 	
 	/*-----------------|
