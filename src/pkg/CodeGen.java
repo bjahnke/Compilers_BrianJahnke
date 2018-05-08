@@ -13,7 +13,7 @@ public class CodeGen<N> {
 	public String[] runEnv = new String[96];
 	public String[] digitMemLocs = new String[10];
 	public List<JumpData> jumpTable = new ArrayList<JumpData>();
-	public List<StaticData> staticTable = new ArrayList<StaticData>(2);
+	public List<StaticData> staticTable = new ArrayList<StaticData>(2); //first 2 locs are reserved for comparison
 	public int codeIndex = 0;
 	public int heapIndex = 95;
 	public int currentScope = 0;
@@ -259,6 +259,22 @@ public class CodeGen<N> {
 		return constant;
 	}
 	
+	//creats static stores at 0th position in const list
+	public StaticData createLeftCompareTemp(){
+		String[] loc = {"8D","T0","XX"};
+		StaticData tempConst = new StaticData(loc, "temp", currentScope, 0);
+		staticTable.set(0, tempConst);
+		return tempConst;
+	}
+		
+	//creates static, stores at 1th pos in const list
+	public StaticData createRightCompareTemp(){
+		String[] loc = {"8D","T1","XX"};
+		StaticData tempConst = new StaticData(loc, "temp", currentScope, 1);
+		staticTable.set(1, tempConst);
+		return tempConst;
+	}
+	
 	/*-----------------|
 	 *                 |
 	 *Concatenate Lists|
@@ -318,6 +334,7 @@ public class CodeGen<N> {
 		}
 		else return null;
 	}
+	
 	
 	/*
 	 * Checks the static table for a initialized ids with the same name as the one passed.
