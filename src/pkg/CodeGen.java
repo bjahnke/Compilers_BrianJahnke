@@ -10,13 +10,13 @@ import java.util.List;
 public class CodeGen<N> {
 	public SyntaxTree<N> ast;
 	public SymbolTable<N> symbolTree;
-	public String[] runEnv = new String[96];
+	public String[] runEnv = new String[255];
 	public String[] digitMemLocs = new String[10];
 	public List<JumpData> jumpTable = new ArrayList<JumpData>();
 	public List<StaticData> staticTable = new ArrayList<StaticData>(); //first 2 locs are reserved for comparison
 	public List<StaticData> tempTable = new ArrayList<StaticData>();
 	public int codeIndex = 0;
-	public int heapIndex = 95;
+	public int heapIndex = 254;
 	public int currentScope = 0;
 	public int previousScope = -1;
 	
@@ -26,12 +26,12 @@ public class CodeGen<N> {
 		storeDigits();
 	}
 	public void startCodeGen(){
-		processBlock(symbolTree.ast.root);
-		int i = codeIndex;
+		int i = 0;
 		while(i <= heapIndex){
 			runEnv[i] = "00";
 			i++;
 		}
+		processBlock(symbolTree.ast.root);
 		backPatch();
 	}
 	public void processBlock(SyntaxTree.Node<N> node){
@@ -76,10 +76,28 @@ public class CodeGen<N> {
 			this.addToRunEnvCode(opCodes);
 		}
 		else if(node.data == WHILE_STATEMENT){
-			//if the "if" statement is true first time, c
+			opCodes = convertWhile(node.children.get(0));
+			processBlock(node.children.get(1));
+			//String[] branchUn = this.branchUnconditionally(memLoc);
 		}	
 		else if(node.data == IF_STATEMENT){
-			//if the if statement is true, call processBlock
+			opCodes = convertIf(node.children.get(0));
+			this.addToRunEnvCode(opCodes);
+			processBlock(node.children.get(1));
+			ifbackPatchJump();
+			
+		}
+	}
+	
+	public void ifbackPatchJump(){
+		for(int i = 0; i < runEnv.length; i++){
+			if(runEnv[i].charAt(0) == 'J'){
+				String hex = Integer.toHexString(codeIndex-(i+1));
+				if(hex.length() != 2){
+					hex = "0"+hex;
+				}
+				runEnv[i] = hex;
+			}
 		}
 	}
 	
@@ -119,7 +137,10 @@ public class CodeGen<N> {
 				idMemLoc[0],
 				idMemLoc[1]
 		};
-		return concat(exprOpCodes, assignOpCodes);
+		if(node.children.get(0).hasChildren()){
+			assignOpCodes = concat(exprOpCodes, assignOpCodes);
+		}
+		return assignOpCodes;
 	}
 	/*-----------------|
 	 *       !         |
@@ -269,6 +290,31 @@ public class CodeGen<N> {
 			return concat(leftOpCode, rightOpCode);
 		}
 	}
+	/*-----------------|
+	 *                 |
+	 * If Code Gen     |
+	 *                 |
+	 -----------------*/
+	
+	public String[] convertIf(SyntaxTree.Node<N> node){
+		String[] exprOpCodes = this.convertExpr(node);
+		String jumpTemp = this.createNewJump().temp;
+		String[] ifOpCodes = {
+				"D0", jumpTemp
+		};
+		return concat(exprOpCodes, ifOpCodes);
+	}
+	
+	/*-----------------|
+	 *                 |
+	 * While Code Gen  |
+	 *                 |
+	 -----------------*/
+	
+	public String[] convertWhile(SyntaxTree.Node<N> node){
+		return null;
+	}
+	
 	/*-----------------|
 	 *                 |
 	 * Pointless       |
