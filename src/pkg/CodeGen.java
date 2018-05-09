@@ -45,7 +45,7 @@ public class CodeGen<N> {
 		 * 
 		 * */
 		if(node.data == BLOCK){
-			System.out.println("Processing New Scope");
+			//System.out.println("Processing New Scope");
 			currentScope = node.nodeNum;
 			if(node.hasChildren()){
 				for(SyntaxTree.Node<N> n : node.children){
@@ -65,22 +65,22 @@ public class CodeGen<N> {
 	public void processProd(SyntaxTree.Node<N> node){
 		String[] opCodes;
 		if(node.data == VAR_DECL){
-			this.printVerbose("VAR_DECL");
+			//this.printVerbose("VAR_DECL");
 			opCodes = convertVarDecl(node);
 			addToRunEnvCode(opCodes);
 		}
 		else if(node.data == ASSIGNMENT_STATEMENT){
-			this.printVerbose("ASSIGNMENT_STATEMENT");
+			//this.printVerbose("ASSIGNMENT_STATEMENT");
 			opCodes = convertAssign(node);
 			addToRunEnvCode(opCodes);
 		}
 		else if(node.data == PRINT_STATEMENT){
-			this.printVerbose("PRINT_STATEMENT");
+			//this.printVerbose("PRINT_STATEMENT");
 			opCodes = convertPrint(node.children.get(0));
 			this.addToRunEnvCode(opCodes);
 		}
 		else if(node.data == WHILE_STATEMENT){
-			this.printVerbose("WHILE_STATEMENT");
+			//this.printVerbose("WHILE_STATEMENT");
 			int whilejumpTo = codeIndex;
 			
 			opCodes = convertIf(node.children.get(0));
@@ -98,7 +98,7 @@ public class CodeGen<N> {
 			backPatchJump(whilejumpIndex, whilejumpTo);
 		}	
 		else if(node.data == IF_STATEMENT){
-			this.printVerbose("IF_STATEMENT");	
+			//this.printVerbose("IF_STATEMENT");	
 			opCodes = convertIf(node.children.get(0));
 			this.addToRunEnvCode(opCodes);
 			int jumpIndex = codeIndex-1;
@@ -718,7 +718,8 @@ public class CodeGen<N> {
 				return STRINGLITERAL;
 			}
 			else if(nodeTok.getType() == ID){
-				SyntaxTree.Node<N> scope = this.symbolTree.getScopeByNumber(currentScope, this.symbolTree.root);
+				StaticData id = this.getStaticDataById(nodeTok);
+				SyntaxTree.Node<N> scope = this.symbolTree.getScopeByNumber(id.scope, this.symbolTree.root);
 				Var foundVar = this.symbolTree.findId_InEntireScope(nodeTok, scope);
 				if(foundVar.getType() == STRING){
 					return ID;

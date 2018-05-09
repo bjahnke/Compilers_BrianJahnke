@@ -1,12 +1,50 @@
 /* Good Code */
 /* print exprs */
 {
+	string a
+	a = "bae"
+	print(a)
+	{
+		print(a)
+		boolean a
+		a = false
+		print(a)
+	}
+	{
+		print(a)
+		int a 
+		a = 5
+		print(a)
+	}
+	
+}$
+{
 	if true{
 	int a
 	a = 3
 	print(a)
 	}
 }$
+{
+	boolean i 
+	i = false
+	int a
+	a = 1
+	while(i == false){
+		int c 
+		c = 5
+		if(a != c){
+		a = 1 + a
+		}
+		if(c != a){
+		c = 1 - c
+		}
+		if(c == a){
+		i = true
+		}	
+	}
+}$
+
 {
  int a
  {
