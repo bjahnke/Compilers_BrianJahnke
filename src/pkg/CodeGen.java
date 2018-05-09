@@ -181,14 +181,15 @@ public class CodeGen<N> {
 				idMemLoc[0],
 				idMemLoc[1]
 		};
-		TokenType tType = this.isString(node.children.get(1));
+		load = loadMem;
+		TokenType tType = this.isString(expr);
 		if(tType == STRINGLITERAL){
 			load = loadPointer;
 		}
 		else if(tType == ID){
 			load = loadMem;
 		}
-		else{
+		else if(tType == null && expr.hasChildren()){
 			load = concat(exprOpCodes, loadMem);
 		}
 		String[] assignOpCodes = concat(load, store);
@@ -225,7 +226,7 @@ public class CodeGen<N> {
 		else if(tType == ID){
 			printOpCode[1] = "02";
 		}
-		else{
+		else if(tType == null && node.hasChildren()){
 			loadYReg = concat(exprOpCode, loadYReg);
 		}
 		printOpCode = concat(loadYReg, printOpCode);
@@ -280,7 +281,7 @@ public class CodeGen<N> {
 		if(leftTType == STRINGLITERAL){
 			leftCode = xRegPointer;
 		}
-		else if(leftTType == null){
+		else if(leftTType == null && node.children.get(0).hasChildren()){
 			leftCode = concat(leftExprCode, leftCode);
 		}
 		//-------------------------------------------------------------------------
@@ -310,7 +311,7 @@ public class CodeGen<N> {
 		if(rightTType == STRINGLITERAL){
 			rightCode = concat(loadPointer, rightCode);
 		}
-		else if(rightTType == null){
+		else if(rightTType == null && node.children.get(1).hasChildren()){
 			loadMemLoc = concat(rightExprCode, loadMemLoc);
 			rightCode = concat(loadMemLoc, rightCode);
 		}

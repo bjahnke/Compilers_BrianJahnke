@@ -42,4 +42,11 @@
 	string a
 	a = "brian"
 	print((a == "brian"))
+	print(("brian" == a))
 }$
+{
+	int a
+	a = 3
+	print((1+2 == a))
+	print((a != 1+2))
+}
