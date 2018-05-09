@@ -63,33 +63,66 @@ public class CodeGen<N> {
 	public void processProd(SyntaxTree.Node<N> node){
 		String[] opCodes;
 		if(node.data == VAR_DECL){
-			System.out.println("Converting VarDecl to Code");
+			this.printVerbose("VAR_DECL");
 			opCodes = convertVarDecl(node);
 			addToRunEnvCode(opCodes);
 		}
 		else if(node.data == ASSIGNMENT_STATEMENT){
+			this.printVerbose("ASSIGNMENT_STATEMENT");
 			opCodes = convertAssign(node);
 			addToRunEnvCode(opCodes);
 		}
 		else if(node.data == PRINT_STATEMENT){
+			this.printVerbose("PRINT_STATEMENT");
 			opCodes = convertPrint(node.children.get(0));
 			this.addToRunEnvCode(opCodes);
 		}
 		else if(node.data == WHILE_STATEMENT){
-			opCodes = convertWhile(node.children.get(0));
-			processBlock(node.children.get(1));
-			ifbackPatchJump();
-		}	
-		else if(node.data == IF_STATEMENT){
+			this.printVerbose("WHILE_STATEMENT");
 			opCodes = convertIf(node.children.get(0));
+			int jumpTo = codeIndex-opCodes.length;
+			this.addToRunEnvCode(opCodes);
+			int jumpIndex = codeIndex;
+			
+			this.backPatchJump(jumpIndex, jumpTo);
+			opCodes = convertWhile(node.children.get(0));
+			
 			this.addToRunEnvCode(opCodes);
 			processBlock(node.children.get(1));
-			ifbackPatchJump();
+			ifBackPatchJump();
+		}	
+		else if(node.data == IF_STATEMENT){
+			this.printVerbose("IF_STATEMENT");
+			opCodes = convertIf(node.children.get(0));
+			this.addToRunEnvCode(opCodes);
+			int jumpIndex = codeIndex-1;
+			processBlock(node.children.get(1));
+			int jumpTo = codeIndex;
+			backPatchJump(jumpIndex, jumpTo);
 			
 		}
 	}
 	
-	public void ifbackPatchJump(){
+	public void backPatchJump(int index, int jumpTo){
+		String hex;
+		int dist;
+		if(runEnv[index].charAt(0) == 'J'){
+			if(index <= jumpTo){
+				dist = jumpTo-(index+1);
+				hex = Integer.toHexString(dist);
+				if(hex.length() < 2){
+					hex = "0"+hex;
+				}
+			}
+			else {
+				dist = runEnv.length-(index-jumpTo);
+				hex = Integer.toHexString(dist);
+			}
+			runEnv[index] = hex;
+		}
+	}
+	
+	public void ifBackPatchJump(){
 		for(int i = 0; i < runEnv.length; i++){
 			if(runEnv[i].charAt(0) == 'J'){
 				String hex = Integer.toHexString(codeIndex-(i+1));
@@ -137,7 +170,7 @@ public class CodeGen<N> {
 				idMemLoc[0],
 				idMemLoc[1]
 		};
-		if(node.children.get(0).hasChildren()){
+		if(node.children.get(1).hasChildren()){
 			assignOpCodes = concat(exprOpCodes, assignOpCodes);
 		}
 		return assignOpCodes;
@@ -312,15 +345,16 @@ public class CodeGen<N> {
 	 -----------------*/
 	
 	public String[] convertWhile(SyntaxTree.Node<N> node){
-		String[] exprOpCodes = this.convertExpr(node);
-		this.addToRunEnvCode(exprOpCodes);
+		//String[] exprOpCodes = this.convertExpr(node);
+		//this.addToRunEnvCode(exprOpCodes);
 		String jumpTemp = this.createNewJump().temp;
+		String[] t1 = this.createNewTempLoc().temp;
 		String[] bucOpCode = {
-				"A9", "00",
-				"8D", "", "",
-				"A2", "01",
-				"EC", "", "",
-				"D0", jumpTemp
+				"A9", "00",                  //load accum 0
+				"8D", t1[0], t1[1],          //store to t1
+				"A2", "01",                  //x reg = 1
+				"EC", t1[0], t1[1],          //compare x reg to t1 (always false)
+				"D0", jumpTemp               //jump to while
 		};
 		return bucOpCode;
 	}
@@ -355,6 +389,7 @@ public class CodeGen<N> {
 		String[] loc = {"T"+staticTable.size(), "XX"};
 		StaticData constant = new StaticData(loc, name, currentScope, staticTable.size());
 		staticTable.add(constant);
+		tempTable.clear();
 		return constant;
 	}
 	
@@ -366,16 +401,7 @@ public class CodeGen<N> {
 	//WHAT I NEED: n pairs of temp storage for each nested compare there is. <--- no just n locs, x reg helps us out
 	//Every time convertCompare is called, we allocate one more memory location as a temp storage value.
 	public StaticData createNewTempLoc(){
-		int tempOffset = 0;
-		if(tempTable.isEmpty()){
-			tempOffset = staticTable.get(staticTable.size()-1).offset+1;
-		}
-		else if(staticTable.size()+tempTable.size() == tempTable.get(tempTable.size()-1).offset+1){
-			tempOffset = tempTable.get(tempTable.size()-1).offset+1;
-		}
-		else if(staticTable.size()+tempTable.size() != tempTable.get(tempTable.size()-1).offset+1){
-			
-		}
+		int tempOffset = staticTable.size()+tempTable.size();
 		String[] loc = {"T"+tempOffset, "XX"};
 		StaticData tempConst = new StaticData(loc, "temp", currentScope, tempOffset);
 		tempTable.add(tempConst);
@@ -567,13 +593,14 @@ public class CodeGen<N> {
 	 *                 |
 	 -----------------*/
 	public void printRunEnv(){
+		System.out.println("");
 		for(int i = 0; i < this.runEnv.length; i++){
 			System.out.print(this.runEnv[i]+" ");
 			if((i+1) % 8 == 0){
 				System.out.print("\n");
 			}
 		}
-		System.out.println("");
+		System.out.println("\n");
 	}
 	
 	/*-----------------|
@@ -581,4 +608,8 @@ public class CodeGen<N> {
 	 * Extra/Unused    |
 	 *                 |
 	 -----------------*/
+	
+	public void printVerbose(String str){
+		System.out.println("Generating: "+str);
+	}
 }
