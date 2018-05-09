@@ -19,7 +19,7 @@ public class CodeGen<N> {
 	public int codeIndex = 0;
 	public int heapIndex = 254;
 	public int currentScope = 0;
-	public int previousScope = -1;
+	public int previousScope = 0;
 	
 	public CodeGen(SymbolTable<N> sT){
 		this.symbolTree = sT;
@@ -80,17 +80,22 @@ public class CodeGen<N> {
 		}
 		else if(node.data == WHILE_STATEMENT){
 			this.printVerbose("WHILE_STATEMENT");
+			int whilejumpTo = codeIndex;
+			
 			opCodes = convertIf(node.children.get(0));
-			int jumpTo = codeIndex-opCodes.length;
 			this.addToRunEnvCode(opCodes);
-			int jumpIndex = codeIndex;
+			int ifjumpIndex = codeIndex - 1;
 			
-			this.backPatchJump(jumpIndex, jumpTo);
-			opCodes = convertWhile(node.children.get(0));
-			
-			this.addToRunEnvCode(opCodes);
 			processBlock(node.children.get(1));
-			ifBackPatchJump();
+			
+			opCodes = convertWhile(node.children.get(0));
+			this.addToRunEnvCode(opCodes);
+			int whilejumpIndex = codeIndex - 1;
+			
+			int ifjumpTo = codeIndex-opCodes.length;
+			ifjumpTo = codeIndex;
+			this.backPatchJump(ifjumpIndex, ifjumpTo);
+			backPatchJump(whilejumpIndex, whilejumpTo);
 		}	
 		else if(node.data == IF_STATEMENT){
 			this.printVerbose("IF_STATEMENT");

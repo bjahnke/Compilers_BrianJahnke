@@ -50,3 +50,20 @@
 	print((1+2 == a))
 	print((a != 1+2))
 }
+
+{
+	print(("h" == "h"))
+}$
+
+{
+	print((1 == 1))
+}$
+	
+{
+	int i
+	i = 0
+	while(i != 5){
+		i = 1 + i
+	}
+	print(i)
+}$

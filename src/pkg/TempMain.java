@@ -11,11 +11,37 @@ import java.util.Scanner;
 
 public class TempMain {
 	public static boolean isVerboseOnLP;
+	public static boolean verboseLexer = true;
+	public static boolean verboseParser = true;
+	public static boolean verboseSemantic = true;
+	public static boolean verboseCodeGen = true;
 	public static int progCount = 1;
 	
 	public static void main(String[] args) {
-		System.out.println("TempMain");
+		if(args.length > 1){
+			if(args[1].equals("0")){
+				verboseLexer = false;
+			}
+			if(args.length > 2){
+				if(args[2].equals("0")){
+					verboseParser = false;
+				}
+				if(args.length > 3){
+					if(args[3].equals("0")){
+						verboseSemantic = false;
+					}
+					if(args.length > 4){
+						if(args[4].equals("0")){
+							verboseCodeGen = false;
+						}
+					}
+				}
+			}
+		}
+		//String filePath = args[0];
 		File testFile = getTestFile();
+		//File testFile = new File(filePath);
+		//System.out.println("TempMain");
 		isVerboseOnLP = toggleVerbose();
 		String cString = scanFileReturnCharString(testFile);
 		List<String> progStrings = seperatePrograms(cString);
@@ -60,7 +86,7 @@ public class TempMain {
 				cStrList.add(progString);
 				progString = "";
 			}
-			else if(i == codeString.length()-1  && progString.length() > 0) {
+			else if(i == codeString.length()-1  && progString.trim().length() > 0) {
 				System.out.println("Warning: $ at file end not present. Added Automatically to prevent failure.");
 				progString += "$";
 				cStrList.add(progString);
