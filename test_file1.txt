@@ -1,6 +1,40 @@
 /* Good Code */
 /* print exprs */
 {
+	if true{
+	int a
+	a = 3
+	print(a)
+	}
+}$
+{
+ int a
+ {
+  a = 4
+  {
+   print(a)
+   int b
+   b = 3
+   print(b)
+  }
+ }
+}$
+
+{
+	int a
+	string c
+	a = 1 
+	if true {
+		if(a == 1){
+		boolean b
+		b = false
+		print(b)
+		print(a)
+		}
+	}
+}$
+
+{
 	string a
 	a = "hello world"
 	print(a)
@@ -67,3 +101,21 @@
 	}
 	print(i)
 }$
+
+{
+	int a
+	a = 8
+	string b
+	b = "boy"
+	string c
+	c = "girl"
+	print(a)
+	print(c)
+	if(((3+4 != a) == (b != c)) == false){
+		a = 7
+		c = "boy"
+	}
+	print(a)
+	print(b)
+}$
+

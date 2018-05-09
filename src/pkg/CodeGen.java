@@ -45,6 +45,7 @@ public class CodeGen<N> {
 		 * 
 		 * */
 		if(node.data == BLOCK){
+			System.out.println("Processing New Scope");
 			currentScope = node.nodeNum;
 			if(node.hasChildren()){
 				for(SyntaxTree.Node<N> n : node.children){
@@ -85,7 +86,6 @@ public class CodeGen<N> {
 			opCodes = convertIf(node.children.get(0));
 			this.addToRunEnvCode(opCodes);
 			int ifjumpIndex = codeIndex - 1;
-			
 			processBlock(node.children.get(1));
 			
 			opCodes = convertWhile(node.children.get(0));
@@ -98,7 +98,7 @@ public class CodeGen<N> {
 			backPatchJump(whilejumpIndex, whilejumpTo);
 		}	
 		else if(node.data == IF_STATEMENT){
-			this.printVerbose("IF_STATEMENT");
+			this.printVerbose("IF_STATEMENT");	
 			opCodes = convertIf(node.children.get(0));
 			this.addToRunEnvCode(opCodes);
 			int jumpIndex = codeIndex-1;
@@ -403,6 +403,13 @@ public class CodeGen<N> {
 	
 	public String[] convertIf(SyntaxTree.Node<N> node){
 		String[] exprOpCodes = this.convertExpr(node);
+		if(!node.hasChildren()){
+			String[] singleBoolCode = {  
+					"A2", "01",                     
+					"EC", exprOpCodes[0], exprOpCodes[1]		
+			};
+			exprOpCodes = singleBoolCode;
+		}
 		String jumpTemp = this.createNewJump().temp;
 		String[] ifOpCodes = {
 				"D0", jumpTemp

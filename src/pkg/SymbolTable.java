@@ -120,6 +120,7 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 		else if(node.data == IF_STATEMENT || node.data == WHILE_STATEMENT){
 			if(inferExprType(node.children.get(0)) == BOOLEAN){               //boolExpr location
 				this.addBranchScope();
+				node.children.get(1).nodeNum = this.scopeCount;
 				if(buildSymbolTable(node.children.get(1))){
 					this.endChildren();
 					return true;
@@ -140,6 +141,7 @@ public class SymbolTable<N> extends SyntaxTree<N>{
 		for(Node<N> child : parent.children){
 			if(child.data == BLOCK){
 				this.addBranchScope();
+				child.nodeNum = this.scopeCount;
 				if(!buildSymbolTable(child)){
 					return false;
 				}
