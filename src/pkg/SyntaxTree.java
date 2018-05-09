@@ -166,8 +166,10 @@ public class SyntaxTree<N>{
 		this.currentNode = this.currentNode.children.get(0);
 		this.ast = new SyntaxTree((ProdType)this.currentNode.data);
 		this.toAST();
-		System.out.println("AST:\n");
-		this.ast.printTree3("");
+		if(TempMain.printAST){
+			System.out.println("AST:\n");
+			this.ast.printTree3("");
+		}
 		this.ast.currentNode = this.ast.root;
 		System.out.println("\n");
 	}
