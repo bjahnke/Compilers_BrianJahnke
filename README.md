@@ -1,10 +1,12 @@
 # Compilers_BrianJahnke
 How To Compile and Run the Project from CMD/Terminal:
 1. Ensure you have a system path variable set for java version 1.8.0_144
-2. In CMD or Terminal, navigate to the project src folder: ...\Compilers_BrianJahnke\src
-3. To Compile, Enter: javac TempMain.java Lexer.java Parser.java
-4. To Run Project, Enter: java TempMain
-5. To Load Test File:
--When prompt, press 1 and enter to load a test file with custom path
--Type the path of your file, including the file name and extension, and press enter
-6. Enter 'y' or 'n' to toggle verbose mode for Lex/Parse.
+2. In CMD or Terminal, navigate to the project's main directory: ...\Compilers_BrianJahnke
+3. Compile: javac scr/pkg/*.java
+4. Run: java -cp ./src pkg.TempMain <text file path> <a> <b> <c> <d>
+Optional variables. Enter 0 to turn off. Enter anything else or leave blank to keep on:  
+  <a>: verbose Lexer Parser output
+  <b>: print CST 
+  <c>: print AST
+  <d>: print Symbol Table
+    
