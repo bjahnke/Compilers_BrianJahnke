@@ -38,9 +38,9 @@ public class TempMain {
 				}
 			}
 		}
-		//String filePath = args[0];
-		File testFile = getTestFile();
-		//File testFile = new File(filePath);
+		String filePath = args[0];
+		//File testFile = getTestFile();
+		File testFile = new File(filePath);
 		//System.out.println("TempMain");
 		isVerboseOnLP = verboseLexerParser;
 		String cString = scanFileReturnCharString(testFile);
