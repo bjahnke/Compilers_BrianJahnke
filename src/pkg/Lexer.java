@@ -175,10 +175,10 @@ public class Lexer {
 					List<Token> strToks = verifyStringLit(strLit);
 					if(strToks != null){
 						Token startQuote = new Token(DQUOTE, ""+input.charAt(i), lineNum);
-						progTokList.add(startQuote);
+						result.add(startQuote);
 						TempMain.verbosePrint(startQuote.toString());
 						for(int ind = 0; ind < strToks.size(); ind++){
-							progTokList.add(strToks.get(ind));
+							result.add(strToks.get(ind));
 							TempMain.verbosePrint(strToks.get(ind).toString());
 						}
 						i += strLit.length()-1;

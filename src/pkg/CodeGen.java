@@ -159,20 +159,41 @@ public class CodeGen<N> {
 	 *                 |
 	 -----------------*/
 	public String[] convertAssign(SyntaxTree.Node<N> node){
+		String[] load;
 		String[] idMemLoc = getTermMemLoc(node.children.get(0));
 		SyntaxTree.Node<N> expr = node.children.get(1);
 		String[] exprOpCodes = convertExpr(expr);
-		String[] assignOpCodes = {
-				"AD", 
+		
+		String[] loadMem = {
+				"AD",
 				exprOpCodes[exprOpCodes.length-2],
 				exprOpCodes[exprOpCodes.length-1],
+		};
+		
+		String[] loadPointer = {
+				"A9",
+				exprOpCodes[exprOpCodes.length-2]
+		};
+		
+		String[] store = {
 				"8D", 
 				idMemLoc[0],
 				idMemLoc[1]
 		};
+		
 		if(node.children.get(1).hasChildren()){
-			assignOpCodes = concat(exprOpCodes, assignOpCodes);
+			load = concat(exprOpCodes, loadMem);
 		}
+		else{
+			Token nodeTok = (Token)expr.data;
+			if(nodeTok.getType() == STRINGLITERAL){
+				load = loadPointer;
+			}
+			else{
+				load = loadMem;
+			}
+		}
+		String[] assignOpCodes = concat(load, store);
 		return assignOpCodes;
 	}
 	/*-----------------|
@@ -182,26 +203,47 @@ public class CodeGen<N> {
 	 -----------------*/
 	public String[] convertPrint(SyntaxTree.Node<N> node){
 		String[] exprOpCode = convertExpr(node);
-		String[] printOpCode = {
+		String[] loadXRegMem = {
 				"AC", 
 				exprOpCode[exprOpCode.length-2],
-				exprOpCode[exprOpCode.length-1],
+				exprOpCode[exprOpCode.length-1]
+		};
+		//can be a constant but for me it will only be pointers
+		String[] loadXRegPointer = {
+				"A0",
+				exprOpCode[exprOpCode.length-2],
+		};
+		String[] printOpCode = {
 				"A2",
 				"01",
 				"FF"
 		};
+		String[] loadXReg = loadXRegMem;
 		if(!node.hasChildren()){
 			Token nodeTok = (Token)node.data;
 			if(nodeTok.getType() == STRINGLITERAL){
-				printOpCode[4] = "02";
+				printOpCode[1] = "02";
+				loadXReg = loadXRegPointer;
+			}
+			if(nodeTok.getType() == ID){
+				SyntaxTree.Node<N> scope = this.symbolTree.getScopeByNumber(currentScope, this.symbolTree.root);
+				Var foundVar = this.symbolTree.findId_InEntireScope(nodeTok, scope);
+				if(foundVar.getType() == STRING){
+					printOpCode[1] = "02";
+				}
 			}
 		}
-		if(node.data == ADD){
-			printOpCode = concat(exprOpCode, printOpCode);
+		else if(node.data == ADD){
+			loadXReg = concat(exprOpCode, loadXReg);
 		}
+		printOpCode = concat(loadXReg, printOpCode);
 		return printOpCode;
 	}		
-	
+	/*-----------------|
+	 *        !        |
+	 * Recursively gen |
+	 *    exprs        |
+	 -----------------*/
 	public String[] convertExpr(SyntaxTree.Node<N> node){
 		String opCode[] = null;
 		if(node.data == COMPARE_EQ || node.data == COMPARE_NEQ){
@@ -543,19 +585,20 @@ public class CodeGen<N> {
 	//Takes a string, stores its 00 terminated hex representation
 	//in the env. returns the memory location of the string
 	public String stringToHexList(String str){
-		String[] hexString = new String[str.length()+1];
-		int memStart = heapIndex-(str.length()+1);
 		
-		for(int i = 0; i < str.length(); i++){
-			char c = str.charAt(i);
-			hexString[i] = Integer.toHexString((int)c);
-			runEnv[memStart+i] = hexString[i];
-		}
-		
-		hexString[hexString.length-1] = "00";
+		int strEnvStart = heapIndex-(str.length());
 		runEnv[heapIndex] = "00";
-		heapIndex = memStart-1;
-		String memStartHex = Integer.toHexString(memStart);
+		heapIndex--;
+		for(int i = heapIndex; i >= strEnvStart; i--){
+			char c = str.charAt(i-strEnvStart);
+			String charHex = Integer.toHexString((int)c);
+			runEnv[i] = charHex;
+		}
+		String memStartHex = Integer.toHexString(strEnvStart);
+		if(memStartHex.length() < 2){
+			memStartHex = "0"+memStartHex;
+		}
+		heapIndex = strEnvStart-1;
 		return memStartHex;
 	}
 	
