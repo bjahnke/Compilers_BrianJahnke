@@ -30,3 +30,16 @@
 	a = 1 + 2 + a
 	print(a)
 }$
+
+{
+	string a
+	string b
+	a = "hey"
+	b = a
+	print((a == b))
+}$
+{
+	string a
+	a = "brian"
+	print((a == "brian"))
+}$

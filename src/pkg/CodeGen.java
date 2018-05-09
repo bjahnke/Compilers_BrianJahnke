@@ -15,6 +15,7 @@ public class CodeGen<N> {
 	public List<JumpData> jumpTable = new ArrayList<JumpData>();
 	public List<StaticData> staticTable = new ArrayList<StaticData>(); //first 2 locs are reserved for comparison
 	public List<StaticData> tempTable = new ArrayList<StaticData>();
+	public List<StaticData> stringTable = new ArrayList<StaticData>();
 	public int codeIndex = 0;
 	public int heapIndex = 254;
 	public int currentScope = 0;
@@ -180,18 +181,15 @@ public class CodeGen<N> {
 				idMemLoc[0],
 				idMemLoc[1]
 		};
-		
-		if(node.children.get(1).hasChildren()){
-			load = concat(exprOpCodes, loadMem);
+		TokenType tType = this.isString(node.children.get(1));
+		if(tType == STRINGLITERAL){
+			load = loadPointer;
+		}
+		else if(tType == ID){
+			load = loadMem;
 		}
 		else{
-			Token nodeTok = (Token)expr.data;
-			if(nodeTok.getType() == STRINGLITERAL){
-				load = loadPointer;
-			}
-			else{
-				load = loadMem;
-			}
+			load = concat(exprOpCodes, loadMem);
 		}
 		String[] assignOpCodes = concat(load, store);
 		return assignOpCodes;
@@ -203,13 +201,13 @@ public class CodeGen<N> {
 	 -----------------*/
 	public String[] convertPrint(SyntaxTree.Node<N> node){
 		String[] exprOpCode = convertExpr(node);
-		String[] loadXRegMem = {
+		String[] loadYRegMem = {
 				"AC", 
 				exprOpCode[exprOpCode.length-2],
 				exprOpCode[exprOpCode.length-1]
 		};
 		//can be a constant but for me it will only be pointers
-		String[] loadXRegPointer = {
+		String[] loadYRegPointer = {
 				"A0",
 				exprOpCode[exprOpCode.length-2],
 		};
@@ -218,25 +216,19 @@ public class CodeGen<N> {
 				"01",
 				"FF"
 		};
-		String[] loadXReg = loadXRegMem;
-		if(!node.hasChildren()){
-			Token nodeTok = (Token)node.data;
-			if(nodeTok.getType() == STRINGLITERAL){
-				printOpCode[1] = "02";
-				loadXReg = loadXRegPointer;
-			}
-			if(nodeTok.getType() == ID){
-				SyntaxTree.Node<N> scope = this.symbolTree.getScopeByNumber(currentScope, this.symbolTree.root);
-				Var foundVar = this.symbolTree.findId_InEntireScope(nodeTok, scope);
-				if(foundVar.getType() == STRING){
-					printOpCode[1] = "02";
-				}
-			}
+		String[] loadYReg = loadYRegMem;
+		TokenType tType = this.isString(node);
+		if(tType == STRINGLITERAL){
+			printOpCode[1] = "02";
+			loadYReg = loadYRegPointer;
 		}
-		else if(node.data == ADD){
-			loadXReg = concat(exprOpCode, loadXReg);
+		else if(tType == ID){
+			printOpCode[1] = "02";
 		}
-		printOpCode = concat(loadXReg, printOpCode);
+		else{
+			loadYReg = concat(exprOpCode, loadYReg);
+		}
+		printOpCode = concat(loadYReg, printOpCode);
 		return printOpCode;
 	}		
 	/*-----------------|
@@ -269,20 +261,35 @@ public class CodeGen<N> {
 	 -----------------*/
 	public String[] convertCompare(SyntaxTree.Node<N> node){
 		String[] opCodes = null;
+		//Build op code sequence for left compare--------------------------------
 		String[] leftExprCode = this.convertExpr(node.children.get(0));
-		String[] leftCode = {
+		TokenType leftTType = this.isString(node.children.get(0));
+		
+		String[] xRegMemory = {
 				"AE",
 				leftExprCode[leftExprCode.length-2],
 				leftExprCode[leftExprCode.length-1]
 		};
-
+		String[] xRegPointer =  {
+				"A2",
+				leftExprCode[leftExprCode.length-2]
+		};
+		
+		String[] leftCode = xRegMemory;
+		
+		if(leftTType == STRINGLITERAL){
+			leftCode = xRegPointer;
+		}
+		else if(leftTType == null){
+			leftCode = concat(leftExprCode, leftCode);
+		}
+		//-------------------------------------------------------------------------
+		//Build op code sequence for right compare
 		String[] rightExprCode = this.convertExpr(node.children.get(1));
+		TokenType rightTType = this.isString(node.children.get(1));
 		String[] tempStorage = this.createNewTempLoc().temp;
 		//copy the memory location to a t(n'th) temp location, then compare x reg with t
 		String[] rightCode = {
-				"AD",
-				rightExprCode[rightExprCode.length-2],
-				rightExprCode[rightExprCode.length-1],
 				"8D",
 				tempStorage[0],
 				tempStorage[1],
@@ -290,8 +297,25 @@ public class CodeGen<N> {
 				tempStorage[0],
 				tempStorage[1]		
 		};
-		if(node.children.get(1).data == ADD){
-			rightCode = concat(rightExprCode, rightCode);
+		String[] loadPointer = {
+				"A9",
+				rightExprCode[rightExprCode.length-2]
+		};
+		String[] loadMemLoc = {
+				"AD",
+				rightExprCode[rightExprCode.length-2],
+				rightExprCode[rightExprCode.length-1]
+		};
+		
+		if(rightTType == STRINGLITERAL){
+			rightCode = concat(loadPointer, rightCode);
+		}
+		else if(rightTType == null){
+			loadMemLoc = concat(rightExprCode, loadMemLoc);
+			rightCode = concat(loadMemLoc, rightCode);
+		}
+		else{
+			rightCode = concat(loadMemLoc, rightCode);
 		}
 		
 		if(node.data == COMPARE_NEQ){
@@ -479,9 +503,15 @@ public class CodeGen<N> {
 	public String[] getTermMemLoc(SyntaxTree.Node<N> node){
 		Token nodeTok = (Token)node.data;
 		if(nodeTok.getType() == STRINGLITERAL){
-			String strLitMemLoc = stringToHexList(nodeTok.getLit());
-			String[] codeMemLoc = {strLitMemLoc, "00"};
-			return codeMemLoc;
+			String[] memLoc;
+			String pointer = this.getExistingStringPointer(nodeTok.getLit());
+			if(pointer != null){
+				memLoc = new String[]{pointer, "00"};
+			}
+			else {
+				memLoc = new String[]{stringToHexList(nodeTok.getLit()), "00"};
+			}
+			return memLoc;
 		}
 		else if(nodeTok.getType() == BOOLVAL){
 			return getBoolvalMemLoc(nodeTok);
@@ -577,6 +607,19 @@ public class CodeGen<N> {
 		return null;
 	}
 	
+	public String getExistingStringPointer(String strLit){
+		for(StaticData sData : stringTable){
+			if(strLit.equals(sData.var)){
+				return sData.temp[0];
+			}
+		}
+		return null;
+	}
+	public void addToStringTable(String memHex, String strLit){
+		StaticData stringStatic = new StaticData(new String[]{memHex}, strLit, 0, 0);
+		stringTable.add(stringStatic);
+	}
+	
 	/*-----------------|
 	 *                 |
 	 * Hex Conversion/ |
@@ -585,7 +628,6 @@ public class CodeGen<N> {
 	//Takes a string, stores its 00 terminated hex representation
 	//in the env. returns the memory location of the string
 	public String stringToHexList(String str){
-		
 		int strEnvStart = heapIndex-(str.length());
 		runEnv[heapIndex] = "00";
 		heapIndex--;
@@ -598,6 +640,7 @@ public class CodeGen<N> {
 		if(memStartHex.length() < 2){
 			memStartHex = "0"+memStartHex;
 		}
+		this.addToStringTable(memStartHex, str);
 		heapIndex = strEnvStart-1;
 		return memStartHex;
 	}
@@ -651,7 +694,26 @@ public class CodeGen<N> {
 	 * Extra/Unused    |
 	 *                 |
 	 -----------------*/
-	
+	public TokenType isString(SyntaxTree.Node<N> node){
+
+		if(node.hasChildren()){
+			return null;
+		}
+		else{
+			Token nodeTok = (Token)node.data;
+			if(nodeTok.getType() == STRINGLITERAL){
+				return STRINGLITERAL;
+			}
+			else if(nodeTok.getType() == ID){
+				SyntaxTree.Node<N> scope = this.symbolTree.getScopeByNumber(currentScope, this.symbolTree.root);
+				Var foundVar = this.symbolTree.findId_InEntireScope(nodeTok, scope);
+				if(foundVar.getType() == STRING){
+					return ID;
+				}
+			}
+		}
+		return null;
+	}
 	public void printVerbose(String str){
 		System.out.println("Generating: "+str);
 	}
