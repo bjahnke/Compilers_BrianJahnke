@@ -11,28 +11,28 @@ import java.util.Scanner;
 
 public class TempMain {
 	public static boolean isVerboseOnLP;
-	public static boolean verboseLexer = true;
-	public static boolean verboseParser = true;
-	public static boolean verboseSemantic = true;
-	public static boolean verboseCodeGen = true;
+	public static boolean verboseLexerParser = true;
+	public static boolean printCST = true;
+	public static boolean printAST = true;
+	public static boolean printSymbolTable = true;
 	public static int progCount = 1;
 	
 	public static void main(String[] args) {
 		if(args.length > 1){
 			if(args[1].equals("0")){
-				verboseLexer = false;
+				verboseLexerParser = false;
 			}
 			if(args.length > 2){
 				if(args[2].equals("0")){
-					verboseParser = false;
+					printCST = false;
 				}
 				if(args.length > 3){
 					if(args[3].equals("0")){
-						verboseSemantic = false;
+						printAST = false;
 					}
 					if(args.length > 4){
 						if(args[4].equals("0")){
-							verboseCodeGen = false;
+							printSymbolTable = false;
 						}
 					}
 				}
@@ -42,7 +42,7 @@ public class TempMain {
 		File testFile = getTestFile();
 		//File testFile = new File(filePath);
 		//System.out.println("TempMain");
-		isVerboseOnLP = toggleVerbose();
+		isVerboseOnLP = verboseLexerParser;
 		String cString = scanFileReturnCharString(testFile);
 		List<String> progStrings = seperatePrograms(cString);
 		//Compilation Start
@@ -99,7 +99,9 @@ public class TempMain {
 		List<Var> list = new ArrayList<Var>();
 		SymbolTable sT = new SymbolTable(list, pList);
 		if(sT.buildSymbolTable(sT.ast.root)){
-			SymbolTable.printSymbolTable();
+			if(printSymbolTable){
+				SymbolTable.printSymbolTable();
+			}
 			sT.symbolTableWarnings();
 			return sT;
 		}

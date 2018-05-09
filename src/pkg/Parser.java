@@ -42,11 +42,11 @@ public class Parser {
 		
 		if(p.parseProg()){
 			System.out.println("Parse completed successfully\n");
-			//if(TempMain.isVerboseOnLP){
+			if(TempMain.printCST){
 				System.out.println("\nCST:\n");
 				p.pTree.printTree3("");
 				System.out.println("\n");
-			//}
+			}
 			p.pTree.initAndGenAST();
 			return p.pTree.ast;
 		}
