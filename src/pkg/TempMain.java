@@ -47,7 +47,7 @@ public class TempMain {
 		List<String> progStrings = seperatePrograms(cString);
 		//Compilation Start
 		compileProgram(progStrings);
-		System.out.println("\nHave nice day.");
+		System.out.println("\nHave nice Summer.");
 	}
 	
 	public static void compileProgram(List<String> pStrList){
